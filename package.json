@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Build script for antiaris project",
   "main": "index.js",
+  "bin": {
+    "antiaris-build": "bin/antiaris-build"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -21,8 +24,10 @@
   },
   "homepage": "https://github.com/antiaris/antiaris-build#readme",
   "dependencies": {
+    "colors": "^1.1.2",
     "js-yaml": "^3.6.1",
     "lodash": "^4.13.1",
-    "mkdirp": "^0.5.1"
+    "mkdirp": "^0.5.1",
+    "rimraf": "^2.5.2"
   }
 }

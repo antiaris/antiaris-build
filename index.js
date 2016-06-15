@@ -14,10 +14,12 @@
 const CWD = process.argv[2] || process.cwd();
 const npm = require('../npm/');
 const path = require('path');
+const rimraf = require('rimraf');
 const fs = require('fs');
 const mkdirp = require('mkdirp');
 const yaml = require('js-yaml');
 const isString = require('lodash/isString');
+require('colors');
 
 const NODE_MODULES = 'node_modules';
 
@@ -33,21 +35,28 @@ const CONFIG = yaml.safeLoad(R('antiaris.yml'));
 
 const NAMESPACE = CONFIG.name;
 
-if (!isString(NAMESPACE) || !NAMESPACE || !/^\w+$/.test(NAMESPACE)) {
+if (!isString(NAMESPACE) || !/^\w+$/.test(NAMESPACE)) {
     throw new Error(`A valid name has to be defined in antiaris.yml`);
 }
 
+const OUTPUT = (isString(CONFIG.output)&&!/^\w+$/.test(CONFIG.output)) ? CONFIG.output: 'output';
+
+console.log(`Process [${NAMESPACE}] in ${CWD}`.green);
+
+rimraf.sync(OUTPUT);
+
 npm(L(NODE_MODULES), {
+    dest: L(`${OUTPUT}/${NAMESPACE}`),
     moduleId: file => {
         return `${NAMESPACE}:${NODE_MODULES}/${file}`;
     },
     moduleDep: dep => {
-        if (!dep) return dep;
+        if (!dep) {
+            return dep;
+        }
         return `${NAMESPACE}:${NODE_MODULES}/` + path.relative(L(NODE_MODULES), dep)
     }
 }, (err, resourceMap) => {
-    console.error(err);
-    fs.writeFileSync('resource-map.json', JSON.stringify(resourceMap, null,
+    fs.writeFileSync(L(`${OUTPUT}/resource-map.json`), JSON.stringify(resourceMap, null,
         4));
-    done();
 });
