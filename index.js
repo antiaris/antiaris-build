@@ -17,6 +17,7 @@ const path = require('path');
 const rimraf = require('rimraf');
 const fs = require('fs');
 const glob = require('glob');
+const cp = require('cp');
 const mv = require('mv');
 const mkdirp = require('mkdirp');
 const yaml = require('js-yaml');
@@ -50,6 +51,21 @@ function W(name, content) {
         mkdirp.sync(dir);
     }
     return fs.writeFileSync(fpath, content);
+}
+
+function MV(src, dest, cb) {
+    mv(L(src), L(dest), {
+        mkdirp: true
+    }, cb);
+}
+
+function CP(src, dest, cb) {
+    const fpath = L(dest);
+    const dir = path.dirname(fpath);
+    if (!fs.existsSync(dir)) {
+        mkdirp.sync(dir);
+    }
+    cp(L(src), fpath, cb);
 }
 
 // 项目配置文件
@@ -95,10 +111,18 @@ Promise.resolve(0).then(() => {
     const binaryMap = {};
     const tasks = files.map(file => {
         return new Promise((resolve, reject) => {
-            let {filename} = filestamp.sync(L(file));
+            let {
+                filename
+            } = filestamp.sync(L(file));
             let moduleId = `${NAMESPACE}:${file}`;
-            binaryMap[moduleId] = `${NAMESPACE}/${filename}`;
-            mv(L(file), L(`${OUTPUT}/static/${filename}`), {mkdirp: true}, err => {
+            binaryMap[moduleId] = {
+                uri: `${NAMESPACE}/${filename}`,
+                deps: []
+            };
+
+            mkdirp.sync(`${OUTPUT}/static/`);
+
+            CP(file, `${OUTPUT}/static/${filename}`, err => {
                 if (err) {
                     reject(err);
                 } else {
@@ -154,16 +178,13 @@ Promise.resolve(0).then(() => {
             if (err) {
                 return reject(err);
             }
-            fs.writeFileSync(L(`${OUTPUT}/resource-map.json`), JSON.stringify(resourceMap, null,
-                4));
+            W(`${OUTPUT}/resource-map.json`, JSON.stringify(resourceMap, null, 4));
             resolve();
         });
     });
 }).then(() => {
     return new Promise((resolve, reject) => {
-        mv(`${TMP_SRC}/`, `${OUTPUT}/app/${NAMESPACE}/`, {
-            mkdirp: true
-        }, err => {
+        MV(`${TMP_SRC}/`, `${OUTPUT}/app/${NAMESPACE}/`, err => {
             if (err) {
                 reject(err)
             } else {
