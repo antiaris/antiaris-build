@@ -12,6 +12,7 @@
 'use strict';
 
 const rimraf = require('rimraf');
+const less = require('less');
 const mkdirp = require('mkdirp');
 const sieve = require('./lib/sieve');
 const {
@@ -62,6 +63,42 @@ sieve.hook(`{${SRC},${NODE_MODULES}}/**/*.{${BINARY_RESOURCE}}`, ({
         resolve({
             file: `../static/${NAMESPACE}/${filename}`,
             content
+        });
+    });
+});
+
+sieve.hook(`{${SRC},${NODE_MODULES}}/**/*.less`, ({
+    file,
+    content
+}) => {
+    return new Promise((resolve, reject) => {
+        less.render(content, {
+            filename: file,
+            compress: true
+        }, (err, output) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(output.css);
+            }
+        });
+    }).then(css => {
+        let {
+            filename
+        } = filestamp.sync(L(file));
+
+        filename = filename.replace(/\.less$/i, '.css');
+
+        let moduleId = `${NAMESPACE}:${file}`;
+
+        resourceMap[moduleId] = {
+            uri: `${NAMESPACE}/${filename}`,
+            deps: []
+        };
+
+        return ({
+            file: `../static/${NAMESPACE}/${filename}`,
+            content: css
         });
     });
 });
