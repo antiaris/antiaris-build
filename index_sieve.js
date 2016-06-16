@@ -41,6 +41,7 @@ const resourceMap = {};
 
 rimraf.sync(OUTPUT); // TODO:on demand
 
+// Binary files
 sieve.hook(`{${SRC},${NODE_MODULES}}/**/*.{${BINARY_RESOURCE}}`, ({
     file,
     content
@@ -50,21 +51,23 @@ sieve.hook(`{${SRC},${NODE_MODULES}}/**/*.{${BINARY_RESOURCE}}`, ({
         let {
             filename
         } = filestamp.sync(L(file));
-        
+
         let moduleId = `${NAMESPACE}:${file}`;
-        
+
         resourceMap[moduleId] = {
             uri: `${NAMESPACE}/${filename}`,
             deps: []
         };
 
         resolve({
-            file: `static/${filename}`,
+            file: `../static/${NAMESPACE}/${filename}`,
             content
         });
     });
 });
 
-sieve.build(CWD).catch(e => {
+sieve.build(CWD).then(() => {
+    return W(`${OUTPUT}/resource-map.json`, JSON.stringify(resourceMap, null, 4));
+}).catch(e => {
     error(e.message);
 });
