@@ -11,16 +11,12 @@
  */
 'use strict';
 
-const CWD = process.argv[2] || process.cwd();
 const npm = require('../npm/');
 const path = require('path');
 const rimraf = require('rimraf');
 const fs = require('fs');
-const glob = require('glob');
-const cp = require('cp');
-const mv = require('mv');
 const mkdirp = require('mkdirp');
-const yaml = require('js-yaml');
+const glob = require('glob');
 const babel = require('babel-core');
 const isString = require('lodash/isString');
 const extend = require('lodash/extend');
@@ -34,59 +30,21 @@ const {
     filestamp
 } = require('antiaris-filestamp');
 
-const NODE_MODULES = 'node_modules';
-
-function L(name) {
-    return path.join(CWD, name);
-}
-
-function R(name) {
-    return fs.readFileSync(L(name), 'utf-8');
-}
-
-function W(name, content) {
-    const fpath = L(name);
-    const dir = path.dirname(fpath);
-    if (!fs.existsSync(dir)) {
-        mkdirp.sync(dir);
-    }
-    return fs.writeFileSync(fpath, content);
-}
-
-function MV(src, dest, cb) {
-    mv(L(src), L(dest), {
-        mkdirp: true
-    }, cb);
-}
-
-function CP(src, dest, cb) {
-    const fpath = L(dest);
-    const dir = path.dirname(fpath);
-    if (!fs.existsSync(dir)) {
-        mkdirp.sync(dir);
-    }
-    cp(L(src), fpath, cb);
-}
-
-// 项目配置文件
-const CONFIG = extend({
-    output: 'output',
-    src: 'src',
-    binary_resource: 'png,jpg,jpeg,gif,bmp,swf,woff,woff2,ttf,eot,otf,cur'
-}, yaml.safeLoad(R('antiaris.yml')));
-
-// 全局命名空间
-const NAMESPACE = CONFIG.name;
-
-if (!isString(NAMESPACE) || !/^\w+$/.test(NAMESPACE)) {
-    throw new Error(`A valid name has to be defined in antiaris.yml`);
-}
+const {
+    L,
+    R,
+    W,
+    MV,
+    CP,
+    CWD,
+    NODE_MODULES,
+    NAMESPACE,
+    OUTPUT,
+    SRC,
+    BINARY_RESOURCE
+} = require('./lib/config');
 
 // 编译后输出目录
-const OUTPUT = (isString(CONFIG.output) && !/^\w+$/.test(CONFIG.output)) ? CONFIG.output : 'output';
-
-// 源代码目录
-const SRC = (isString(CONFIG.src) && !/^\w+$/.test(CONFIG.src)) ? CONFIG.src : 'src';
 
 const TMP_SRC = NAMESPACE;
 
@@ -98,7 +56,7 @@ rimraf.sync(TMP_SRC);
 Promise.resolve(0).then(() => {
     return new Promise((resolve, reject) => {
         info('Compiling static binary resource...');
-        glob(`{${SRC},${NODE_MODULES}}/**/*.{${CONFIG.binary_resource}}`, {
+        glob(`{${SRC},${NODE_MODULES}}/**/*.{${BINARY_RESOURCE}}`, {
             cwd: CWD
         }, (err, files) => {
             if (err) {
