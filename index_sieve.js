@@ -39,28 +39,32 @@ const {
 
 const resourceMap = {};
 
-rimraf.sync(OUTPUT);// TODO:on demand
+rimraf.sync(OUTPUT); // TODO:on demand
 
-sieve.hook(`{${SRC},${NODE_MODULES}}/**/*.{${BINARY_RESOURCE}}`, file => {
+sieve.hook(`{${SRC},${NODE_MODULES}}/**/*.{${BINARY_RESOURCE}}`, ({
+    file,
+    content
+}) => {
     return new Promise((resolve, reject) => {
-        info('Compiling static binary resource...');
+
         let {
             filename
         } = filestamp.sync(L(file));
+        
         let moduleId = `${NAMESPACE}:${file}`;
+        
         resourceMap[moduleId] = {
             uri: `${NAMESPACE}/${filename}`,
             deps: []
         };
 
-        CP(file, `${OUTPUT}/static/${filename}`, err => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve();
-            }
+        resolve({
+            file: `static/${filename}`,
+            content
         });
     });
 });
 
-sieve.build(CWD);
+sieve.build(CWD).catch(e => {
+    error(e.message);
+});
