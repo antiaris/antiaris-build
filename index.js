@@ -17,11 +17,12 @@ const path = require('path');
 const rimraf = require('rimraf');
 const fs = require('fs');
 const glob = require('glob');
+const mv = require('mv');
 const mkdirp = require('mkdirp');
 const yaml = require('js-yaml');
 const babel = require('babel-core');
 const isString = require('lodash/isString');
-require('colors');
+const logger = require('antiaris-logger');
 
 const NODE_MODULES = 'node_modules';
 
@@ -33,10 +34,10 @@ function R(name) {
     return fs.readFileSync(L(name), 'utf-8');
 }
 
-function W(name, content){
+function W(name, content) {
     const fpath = L(name);
     const dir = path.dirname(fpath);
-    if(!fs.existsSync(dir)){
+    if (!fs.existsSync(dir)) {
         mkdirp.sync(dir);
     }
     return fs.writeFileSync(fpath, content);
@@ -51,37 +52,72 @@ if (!isString(NAMESPACE) || !/^\w+$/.test(NAMESPACE)) {
 }
 
 const OUTPUT = (isString(CONFIG.output) && !/^\w+$/.test(CONFIG.output)) ? CONFIG.output : 'output';
+const SRC = (isString(CONFIG.src) && !/^\w+$/.test(CONFIG.src)) ? CONFIG.src : 'src';
 
-console.log(`Process [${NAMESPACE}] in ${CWD}`.green);
+const TMP_SRC = NAMESPACE;
+
+logger.info(`Process [${NAMESPACE}] in ${CWD}`);
 
 rimraf.sync(OUTPUT);
+rimraf.sync(TMP_SRC);
 
-// Compile node_modules
-/*npm(L(NODE_MODULES), {
-    dest: L(`${OUTPUT}/s`),
-    moduleId: file => {
-        return `${NAMESPACE}:${NODE_MODULES}/${file}`;
-    },
-    moduleDep: dep => {
-        if (!dep) {
-            return dep;
+new Promise((resolve, reject) => {
+    logger.info('Compiling src...');
+    // Compile src
+    glob('**/*.{js,jsx}', {
+        cwd: L(SRC)
+    }, (err, files) => {
+        if (err) {
+            return reject(err);
         }
-        return `${NAMESPACE}:${NODE_MODULES}/` + path.relative(L(NODE_MODULES), dep)
-    }
-}, (err, resourceMap) => {
-    fs.writeFileSync(L(`${OUTPUT}/resource-map.json`), JSON.stringify(resourceMap, null,
-        4));
-});*/
+        files.forEach(file => {
+            const result = babel.transformFileSync(path.join(L(SRC), file), {
+                extends: path.join(__dirname, '.babelrc')
+            });
 
-// Compile src
-glob('**/*.{js,jsx}', {
-    cwd: L('src')
-}, (err, files) => {
-    files.forEach(file => {
-        const result = babel.transformFileSync(path.join(L('src'), file), {
-            extends: path.join(__dirname, '.babelrc')
+            W(`${TMP_SRC}/${file}`, result.code);
         });
-
-        W(`${OUTPUT}/${NAMESPACE}/${file}`, result.code);
+        resolve();
     });
+}).then(() => {
+    logger.info('Compiling node_modules...');
+    // Compile node_modules
+    return new Promise((resolve, reject) => {
+        npm(CWD, {
+            pattern: `{${TMP_SRC},${NODE_MODULES}}/**/*.{js,jsx,es}`,
+            dest: L(`${OUTPUT}/static/`),
+            moduleId: file => {
+                return `${NAMESPACE}:` + file.replace(new RegExp(`^${TMP_SRC}\\b`), SRC);
+            },
+            moduleUri: uri => `${NAMESPACE}/${uri}`,
+            moduleDep: dep => {
+                if (!dep) {
+                    return dep;
+                }
+                return `${NAMESPACE}:` + path.relative(CWD, dep).replace(new RegExp(
+                    `^${TMP_SRC}\\b`), SRC);
+            }
+        }, (err, resourceMap) => {
+            if (err) {
+                return reject(err);
+            }
+            fs.writeFileSync(L(`${OUTPUT}/resource-map.json`), JSON.stringify(resourceMap, null,
+                4));
+            resolve();
+        });
+    });
+}).then(() => {
+    return new Promise((resolve, reject) => {
+        mv(`${TMP_SRC}/`, `${OUTPUT}/app/${NAMESPACE}/`, {
+            mkdirp: true
+        }, err => {
+            if (err) {
+                reject(err)
+            } else {
+                resolve();
+            }
+        });
+    });
+}).catch(e => {
+    logger.error(e.message);
 });
