@@ -22,7 +22,16 @@ const mkdirp = require('mkdirp');
 const yaml = require('js-yaml');
 const babel = require('babel-core');
 const isString = require('lodash/isString');
-const logger = require('antiaris-logger');
+const extend = require('lodash/extend');
+const {
+    info,
+    debug,
+    warn,
+    error
+} = require('antiaris-logger');
+const {
+    filestamp
+} = require('antiaris-filestamp');
 
 const NODE_MODULES = 'node_modules';
 
@@ -43,44 +52,88 @@ function W(name, content) {
     return fs.writeFileSync(fpath, content);
 }
 
-const CONFIG = yaml.safeLoad(R('antiaris.yml'));
+// 项目配置文件
+const CONFIG = extend({
+    output: 'output',
+    src: 'src',
+    binary_resource: 'png,jpg,jpeg,gif,bmp,swf,woff,woff2,ttf,eot,otf,cur'
+}, yaml.safeLoad(R('antiaris.yml')));
 
+// 全局命名空间
 const NAMESPACE = CONFIG.name;
 
 if (!isString(NAMESPACE) || !/^\w+$/.test(NAMESPACE)) {
     throw new Error(`A valid name has to be defined in antiaris.yml`);
 }
 
+// 编译后输出目录
 const OUTPUT = (isString(CONFIG.output) && !/^\w+$/.test(CONFIG.output)) ? CONFIG.output : 'output';
+
+// 源代码目录
 const SRC = (isString(CONFIG.src) && !/^\w+$/.test(CONFIG.src)) ? CONFIG.src : 'src';
 
 const TMP_SRC = NAMESPACE;
 
-logger.info(`Process [${NAMESPACE}] in ${CWD}`);
+info(`Process [${NAMESPACE}] in ${CWD}`);
 
 rimraf.sync(OUTPUT);
 rimraf.sync(TMP_SRC);
 
-new Promise((resolve, reject) => {
-    logger.info('Compiling src...');
-    // Compile src
-    glob('**/*.{js,jsx}', {
-        cwd: L(SRC)
-    }, (err, files) => {
-        if (err) {
-            return reject(err);
-        }
-        files.forEach(file => {
-            const result = babel.transformFileSync(path.join(L(SRC), file), {
-                extends: path.join(__dirname, '.babelrc')
-            });
-
-            W(`${TMP_SRC}/${file}`, result.code);
+Promise.resolve(0).then(() => {
+    return new Promise((resolve, reject) => {
+        info('Compiling static binary resource...');
+        glob(`{${SRC},${NODE_MODULES}}/**/*.{${CONFIG.binary_resource}}`, {
+            cwd: CWD
+        }, (err, files) => {
+            if (err) {
+                return reject(err);
+            }
+            resolve(files);
         });
-        resolve();
     });
+}).then(files => {
+    const binaryMap = {};
+    const tasks = files.map(file => {
+        return new Promise((resolve, reject) => {
+            let {filename} = filestamp.sync(L(file));
+            let moduleId = `${NAMESPACE}:${file}`;
+            binaryMap[moduleId] = `${NAMESPACE}/${filename}`;
+            mv(L(file), L(`${OUTPUT}/static/${filename}`), {mkdirp: true}, err => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve();
+                }
+            });
+        });
+    });
+
+    return Promise.all(tasks).then(() => {
+        W(`${OUTPUT}/binary-map.json`, JSON.stringify(binaryMap, null, 4));
+    });
+
 }).then(() => {
-    logger.info('Compiling node_modules...');
+    return new Promise((resolve, reject) => {
+        info('Compiling src...');
+        // Compile src
+        glob('**/*.{js,jsx}', {
+            cwd: L(SRC)
+        }, (err, files) => {
+            if (err) {
+                return reject(err);
+            }
+            files.forEach(file => {
+                const result = babel.transformFileSync(path.join(L(SRC), file), {
+                    extends: path.join(__dirname, '.babelrc')
+                });
+
+                W(`${TMP_SRC}/${file}`, result.code);
+            });
+            resolve();
+        });
+    })
+}).then(() => {
+    info('Compiling node_modules...');
     // Compile node_modules
     return new Promise((resolve, reject) => {
         npm(CWD, {
@@ -119,5 +172,5 @@ new Promise((resolve, reject) => {
         });
     });
 }).catch(e => {
-    logger.error(e.message);
+    error(e.message);
 });

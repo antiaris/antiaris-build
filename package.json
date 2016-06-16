@@ -24,6 +24,7 @@
   },
   "homepage": "https://github.com/antiaris/antiaris-build#readme",
   "dependencies": {
+    "antiaris-filestamp": "^1.0.0",
     "antiaris-logger": "^1.1.0",
     "babel-core": "^6.9.1",
     "babel-plugin-transform-es2015-modules-commonjs": "^6.8.0",
