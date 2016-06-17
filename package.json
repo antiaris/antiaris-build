@@ -9,7 +9,7 @@
   "scripts": {
     "eslint": "./node_modules/.bin/eslint transformer",
     "mocha": "./node_modules/.bin/mocha",
-    "test": "npm run eslint && npm run mocha",
+    "test": "npm run eslint && npm run mocha"
   },
   "repository": {
     "type": "git",

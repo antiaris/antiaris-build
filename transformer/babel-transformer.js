@@ -28,18 +28,18 @@ class BabelTransformer extends Transformer {
             content
         } = seed;
         return new Promise((resolve, reject) => {
-            babel.transformFile(L(file), {
-                extends: path.join(__dirname, '..', '.babelrc')
-            }, (err, result) => {
-                if (err) {
-                    error(`BabelTransform error in ${file}: ${err.message}`);
-                    resolve(seed);
-                } else {
-                    resolve(extend({}, seed, {
-                        content: result.code
-                    }));
-                }
-            });
+            try {
+                const result = babel.transform(content, {
+                    extends: path.join(__dirname, '..', '.babelrc')
+                });
+
+                resolve(extend({}, seed, {
+                    content: result.code
+                }));
+            } catch (err) {
+                error(`BabelTransform error in ${file}: ${err.message}`);
+                resolve(seed);
+            }
         });
     }
 }
