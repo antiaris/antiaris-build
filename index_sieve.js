@@ -142,7 +142,19 @@ sieve.hook(`${NODE_MODULES}/**/*.js`, ({
             }
         }, (err, result) => {
             if (err) {
-                reject(err);
+                error(`Transform "${file}" error: ${err.message}`);
+                let {
+                    filename
+                } = filestamp.sync(L(file));
+
+                resourceMap[moduleId] = {
+                    uri: `${NAMESPACE}/${filename}`,
+                    deps: []
+                };
+                return resolve({
+                     file: `../static/${NAMESPACE}/${filename}`,
+                     content
+                });
             } else {
                 let {
                     filename
@@ -152,7 +164,7 @@ sieve.hook(`${NODE_MODULES}/**/*.js`, ({
                     uri: `${NAMESPACE}/${filename}`,
                     deps: result.deps
                 };
-                resolve({
+                return resolve({
                     file: `../static/${NAMESPACE}/${filename}`,
                     content: result.code
                 });
@@ -178,6 +190,6 @@ sieve.hook(`${SRC}/**/*.{js,jsx}`, ({
 // Final Build
 sieve.build(CWD).then(() => {
     return W(`${OUTPUT}/resource-map.json`, JSON.stringify(resourceMap, null, 4));
-}).catch(e => {
+}).catch(e => {console.log(e)
     error(e.message);
 });
