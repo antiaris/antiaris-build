@@ -29,7 +29,6 @@
     "antiaris-node-resolve": "^1.0.0",
     "antiaris-transform-commonjs-modules-systemjs": "^1.1.0",
     "babel-core": "^6.9.1",
-    "babel-plugin-transform-es2015-modules-commonjs": "^6.8.0",
     "babel-preset-es2015": "^6.9.0",
     "babel-preset-react": "^6.5.0",
     "cp": "^0.2.0",

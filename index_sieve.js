@@ -24,6 +24,7 @@ const {
 } = require('antiaris-filestamp');
 const {
     info,
+    help,
     debug,
     warn,
     error
@@ -53,7 +54,6 @@ sieve.hook(`**/*.*`, ({
     content
 }) => {
     return Promise.resolve({
-        file,
         content
     });
 });
@@ -77,7 +77,10 @@ sieve.hook(`{${SRC},${NODE_MODULES}}/**/*.{${BINARY_RESOURCE}}`, ({
         };
 
         resolve({
-            file: `../static/${NAMESPACE}/${filename}`,
+            writableFiles: [{
+                file: `../static/${NAMESPACE}/${filename}`,
+                content
+            }],
             content
         });
     });
@@ -114,15 +117,17 @@ sieve.hook(`{${SRC},${NODE_MODULES}}/**/*.less`, ({
         };
 
         return ({
-            file: `../static/${NAMESPACE}/${filename}`,
-            content: css
+            writableFiles: [{
+                file: `../static/${NAMESPACE}/${filename}`,
+                content: css
+            }]
         });
     });
 });
 
 // ES6->ES5
-sieve.hook(`${SRC},/**/*.{js,jsx}`, ({
-    file,
+//sieve.hook(`${SRC},/**/*.{js,jsx}`, ({
+/*    file,
     content
 }) => {
     return new Promise((resolve, reject) => {
@@ -132,22 +137,42 @@ sieve.hook(`${SRC},/**/*.{js,jsx}`, ({
             if (err) {
                 error(`Transform ES6 error in ${file}: ${err.message}`);
                 resolve({
-                    file,
                     content
                 });
             } else {
                 resolve({
-                    file,
+                    content: result.code
+                });
+            }
+        });
+    })
+});*/
+
+
+// ES6->ES5
+sieve.hook(`${NODE_MODULES}/**/*.{js,jsx}`, ({
+    file,
+    content
+}) => {
+    return new Promise((resolve, reject) => {
+        babel.transformFile(L(file), {
+            presets: [require('babel-preset-es2015')]
+                //extends: path.join(__dirname, '.babelrc')
+        }, (err, result) => {
+            if (err) {
+                error(`Transform ES6 error in ${file}: ${err.message}`);
+                resolve({
+                    content
+                });
+            } else {
+                resolve({
                     content: result.code
                 });
             }
         });
     })
 });
-// "node_modules" Script files
-// 这里的文件需要生成两份代码，同构之用
-// (1)[Server]原文不动复制过去
-// (2)[Client]生成SystemJS风格，计算时间戳
+// CommonJS to SystemJS
 sieve.hook(`${NODE_MODULES}/**/*.js`, ({
     file,
     content
@@ -155,7 +180,7 @@ sieve.hook(`${NODE_MODULES}/**/*.js`, ({
     return new Promise((resolve, reject) => {
         const moduleId = `${NAMESPACE}:${file}`;
 
-        c2s.transformFile(L(file), {
+        c2s.transform(content, {
             moduleId,
             translateDep: dep => {
                 let p = nodeResolve.resolve(L(file), dep);
@@ -168,29 +193,13 @@ sieve.hook(`${NODE_MODULES}/**/*.js`, ({
         }, (err, result) => {
             if (err) {
                 error(`Transform "${file}" error: ${err.message}`);
-                let {
-                    filename
-                } = filestamp.sync(L(file));
-
-                resourceMap[moduleId] = {
-                    uri: `${NAMESPACE}/${filename}`,
-                    deps: []
-                };
                 return resolve({
-                    file: `../static/${NAMESPACE}/${filename}`,
                     content
                 });
             } else {
-                let {
-                    filename
-                } = filestamp.sync(L(file));
-
-                resourceMap[moduleId] = {
-                    uri: `${NAMESPACE}/${filename}`,
-                    deps: result.deps
-                };
+                resourceMap[moduleId] = resourceMap[moduleId] || {};
+                resourceMap[moduleId].deps = result.deps;
                 return resolve({
-                    file: `../static/${NAMESPACE}/${filename}`,
                     content: result.code
                 });
             }
@@ -198,6 +207,29 @@ sieve.hook(`${NODE_MODULES}/**/*.js`, ({
     });
 });
 
+// Stamp
+sieve.hook(`${NODE_MODULES}/**/*.js`, ({
+    file,
+    content
+}) => {
+    const moduleId = `${NAMESPACE}:${file}`;
+    return new Promise((resolve, reject) => {
+        let {
+            filename
+        } = filestamp.sync(L(file));
+
+        resourceMap[moduleId] = resourceMap[moduleId] || {};
+
+        resourceMap[moduleId].uri = `${NAMESPACE}/${filename}`;
+        return resolve({
+            writableFiles: [{
+                file: `../static/${NAMESPACE}/${filename}`,
+                content
+            }],
+            content
+        });
+    });
+});
 // "src" Script files
 // 这里的文件需要生成两份代码，同构之用
 // (1)[Server]Babel转换成ES5/CommonJS
@@ -207,7 +239,6 @@ sieve.hook(`${SRC}/**/*.{js,jsx}`, ({
     content
 }) => {
     return Promise.resolve({
-        file,
         content
     });
 });
