@@ -12,7 +12,7 @@
 'use strict';
 
 const assert = require('assert');
-const TestTransformer = require('../transformer/test-transformer');
+const TestTransformer = require('../lib/transformer/test-transformer');
 
 describe('antiaris-build', () => {
     describe('transformer', () => {
