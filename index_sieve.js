@@ -15,13 +15,8 @@ const path = require('path');
 const rimraf = require('rimraf');
 const babel = require('babel-core');
 const less = require('less');
-const mkdirp = require('mkdirp');
-const nodeResolve = require('antiaris-node-resolve');
-const c2s = require('antiaris-transform-commonjs-modules-systemjs');
 const sieve = require('./lib/sieve');
-const {
-    filestamp
-} = require('antiaris-filestamp');
+
 const {
     info,
     help,
@@ -43,24 +38,32 @@ const {
     BINARY_RESOURCE
 } = require('./lib/config');
 
+const {
+    Transformer,
+    SystemTransformer,
+    BabelTransformer,
+    StampTransformer
+} =require('./transformer/');
+
 const resourceMap = {};
 
 rimraf.sync(OUTPUT); // TODO:on demand
 
 
+
 // TODO:Replace variables
-sieve.hook(`**/*.*`, ({
-    file,
+//sieve.hook(`**/*.*`, ({
+/*    file,
     content
 }) => {
     return Promise.resolve({
         content
     });
-});
+});*/
 
 // Binary files
-sieve.hook(`{${SRC},${NODE_MODULES}}/**/*.{${BINARY_RESOURCE}}`, ({
-    file,
+//sieve.hook(`{${SRC},${NODE_MODULES}}/**/*.{${BINARY_RESOURCE}}`, ({
+/*    file,
     content
 }) => {
     return new Promise((resolve, reject) => {
@@ -84,11 +87,11 @@ sieve.hook(`{${SRC},${NODE_MODULES}}/**/*.{${BINARY_RESOURCE}}`, ({
             content
         });
     });
-});
+});*/
 
 // Less files
-sieve.hook(`{${SRC},${NODE_MODULES}}/**/*.less`, ({
-    file,
+//sieve.hook(`{${SRC},${NODE_MODULES}}/**/*.less`, ({
+/*    file,
     content
 }) => {
     return new Promise((resolve, reject) => {
@@ -123,93 +126,21 @@ sieve.hook(`{${SRC},${NODE_MODULES}}/**/*.less`, ({
             }]
         });
     });
-});
-
-// ES6->ES5
-//sieve.hook(`${SRC},/**/*.{js,jsx}`, ({
-/*    file,
-    content
-}) => {
-    return new Promise((resolve, reject) => {
-        babel.transformFile(L(file), {
-            extends: path.join(__dirname, '.babelrc')
-        }, (err, result) => {
-            if (err) {
-                error(`Transform ES6 error in ${file}: ${err.message}`);
-                resolve({
-                    content
-                });
-            } else {
-                resolve({
-                    content: result.code
-                });
-            }
-        });
-    })
 });*/
 
 
-// ES6->ES5
-sieve.hook(`${NODE_MODULES}/**/*.{js,jsx}`, ({
-    file,
-    content
-}) => {
-    return new Promise((resolve, reject) => {
-        babel.transformFile(L(file), {
-            presets: [require('babel-preset-es2015')]
-                //extends: path.join(__dirname, '.babelrc')
-        }, (err, result) => {
-            if (err) {
-                error(`Transform ES6 error in ${file}: ${err.message}`);
-                resolve({
-                    content
-                });
-            } else {
-                resolve({
-                    content: result.code
-                });
-            }
-        });
-    })
-});
-// CommonJS to SystemJS
-sieve.hook(`${NODE_MODULES}/**/*.js`, ({
-    file,
-    content
-}) => {
-    return new Promise((resolve, reject) => {
-        const moduleId = `${NAMESPACE}:${file}`;
 
-        c2s.transform(content, {
-            moduleId,
-            translateDep: dep => {
-                let p = nodeResolve.resolve(L(file), dep);
-                if (!p) {
-                    warn(`Dependency "${dep}" not found for ${file}`);
-                    return;
-                }
-                return `${NAMESPACE}:` + path.relative(CWD, p);
-            }
-        }, (err, result) => {
-            if (err) {
-                error(`Transform "${file}" error: ${err.message}`);
-                return resolve({
-                    content
-                });
-            } else {
-                resourceMap[moduleId] = resourceMap[moduleId] || {};
-                resourceMap[moduleId].deps = result.deps;
-                return resolve({
-                    content: result.code
-                });
-            }
-        });
-    });
-});
+//sieve.hook(`${SRC}/**/*.{js,jsx}`, babelTransform.next(systemTransform.next(stampTransform.next(copyTransform)), copyTransform));
+
+
+// ES6->ES5
+//sieve.hook(`${NODE_MODULES}/**/*.{js,jsx}`, babelTransform);
+// CommonJS to SystemJS
+//sieve.hook(`${NODE_MODULES}/**/*.js`, ;
 
 // Stamp
-sieve.hook(`${NODE_MODULES}/**/*.js`, ({
-    file,
+//sieve.hook(`${NODE_MODULES}/**/*.js`, ({
+/*    file,
     content
 }) => {
     const moduleId = `${NAMESPACE}:${file}`;
@@ -229,19 +160,7 @@ sieve.hook(`${NODE_MODULES}/**/*.js`, ({
             content
         });
     });
-});
-// "src" Script files
-// 这里的文件需要生成两份代码，同构之用
-// (1)[Server]Babel转换成ES5/CommonJS
-// (2)[Client]Babel转换成ES5/CommonJS，生成SystemJS风格，计算时间戳
-sieve.hook(`${SRC}/**/*.{js,jsx}`, ({
-    file,
-    content
-}) => {
-    return Promise.resolve({
-        content
-    });
-});
+});*/
 
 // Final Build
 sieve.build(CWD).then(() => {
