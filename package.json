@@ -41,7 +41,8 @@
     "minimatch": "^3.0.0",
     "mkdirp": "^0.5.1",
     "mv": "^2.1.1",
-    "rimraf": "^2.5.2"
+    "rimraf": "^2.5.2",
+    "uglify-js": "^2.6.2"
   },
   "devDependencies": {
     "eslint": "^2.12.0"
