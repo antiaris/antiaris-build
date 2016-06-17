@@ -39,7 +39,7 @@ class Transformer {
                 fo = arr;
             }
             return fo;
-        })
+        });
     }
     _transform(obj) {
         return Promise.resolve(obj);

@@ -15,9 +15,6 @@ const babel = require('babel-core');
 const path = require('path');
 const extend = require('lodash/extend');
 const {
-    L
-} = require('../lib/config');
-const {
     error
 } = require('antiaris-logger');
 
@@ -27,7 +24,7 @@ class BabelTransformer extends Transformer {
             file,
             content
         } = seed;
-        return new Promise((resolve, reject) => {
+        return new Promise(resolve => {
             try {
                 const result = babel.transform(content, {
                     extends: path.join(__dirname, '..', '.babelrc')

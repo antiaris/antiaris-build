@@ -11,16 +11,13 @@
  */
 'use strict';
 const Transformer = require('./transformer');
-const path = require('path');
 const extend = require('lodash/extend');
-const nodeResolve = require('antiaris-node-resolve');
 const {
-    L,
     NAMESPACE
 } = require('../lib/config');
 
 const {
-    filestamp
+    contentstamp
 } = require('antiaris-filestamp');
 
 class StampTransformer extends Transformer {
@@ -33,10 +30,10 @@ class StampTransformer extends Transformer {
             file,
             content
         } = seed;
-        return new Promise((resolve, reject) => {
+        return new Promise(resolve => {
             let {
                 filename
-            } = filestamp.sync(L(file));
+            } = contentstamp.sync(content);
 
             const moduleId = `${NAMESPACE}:${file}`;
 

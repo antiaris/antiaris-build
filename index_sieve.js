@@ -11,22 +11,15 @@
  */
 'use strict';
 
-const path = require('path');
 const rimraf = require('rimraf');
 const sieve = require('./lib/sieve');
 
 const {
-    info,
-    help,
-    debug,
-    warn,
     error
 } = require('antiaris-logger');
 const {
-    L,
     W,
     CWD,
-    NAMESPACE,
     OUTPUT,
     SRC,
     NODE_MODULES,
@@ -34,7 +27,6 @@ const {
 } = require('./lib/config');
 
 const {
-    Transformer,
     SystemTransformer,
     BabelTransformer,
     StampTransformer,
@@ -55,9 +47,8 @@ sieve.hook(`${SRC}/**/*.{js,jsx}`, new BabelTransformer().next(new NoopTransform
 sieve.hook(`${SRC}/**/*.less`, new LessTransformer().next(new StampTransformer(resourceMap)));
 
 // Final Build
-sieve.build(CWD).then(seeds => {
+sieve.build(CWD).then(() => {
     return W(`${OUTPUT}/resource-map.json`, JSON.stringify(resourceMap, null, 4));
 }).catch(e => {
-    console.error(e);
     error(e.message);
 });

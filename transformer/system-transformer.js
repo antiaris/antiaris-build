@@ -21,7 +21,8 @@ const {
     NAMESPACE
 } = require('../lib/config');
 const {
-    error
+    error,
+    warn
 } = require('antiaris-logger');
 
 class SystemTransformer extends Transformer {
@@ -34,7 +35,7 @@ class SystemTransformer extends Transformer {
             file,
             content
         } = seed;
-        return new Promise((resolve, reject) => {
+        return new Promise(resolve => {
             const moduleId = `${NAMESPACE}:${file}`;
 
             c2s.transform(content, {

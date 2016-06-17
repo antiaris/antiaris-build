@@ -26,7 +26,7 @@ class LessTransformer extends Transformer {
             file,
             content
         } = seed;
-        return new Promise((resolve, reject) => {
+        return new Promise(resolve => {
             less.render(content, {
                 filename: file,
                 compress: true
@@ -40,8 +40,8 @@ class LessTransformer extends Transformer {
                     }));
                 }
             });
-        })
-    };
+        });
+    }
 }
 
 module.exports = LessTransformer;
