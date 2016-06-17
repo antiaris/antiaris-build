@@ -13,8 +13,6 @@
 
 const path = require('path');
 const rimraf = require('rimraf');
-const babel = require('babel-core');
-const less = require('less');
 const sieve = require('./lib/sieve');
 
 const {
@@ -26,16 +24,11 @@ const {
 } = require('antiaris-logger');
 const {
     L,
-    R,
     W,
-    MV,
-    CP,
     CWD,
-    NODE_MODULES,
     NAMESPACE,
     OUTPUT,
-    SRC,
-    BINARY_RESOURCE
+    SRC
 } = require('./lib/config');
 
 const {
@@ -43,7 +36,8 @@ const {
     SystemTransformer,
     BabelTransformer,
     StampTransformer,
-    NoopTransformer
+    NoopTransformer,
+    LessTransformer
 } =require('./transformer/');
 
 const resourceMap = {};
@@ -90,82 +84,12 @@ rimraf.sync(OUTPUT); // TODO:on demand
     });
 });*/
 
-// Less files
-//sieve.hook(`{${SRC},${NODE_MODULES}}/**/*.less`, ({
-/*    file,
-    content
-}) => {
-    return new Promise((resolve, reject) => {
-        less.render(content, {
-            filename: file,
-            compress: true
-        }, (err, output) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(output.css);
-            }
-        });
-    }).then(css => {
-        let {
-            filename
-        } = filestamp.sync(L(file));
-
-        filename = filename.replace(/\.less$/i, '.css');
-
-        let moduleId = `${NAMESPACE}:${file}`;
-
-        resourceMap[moduleId] = {
-            uri: `${NAMESPACE}/${filename}`,
-            deps: []
-        };
-
-        return ({
-            writableFiles: [{
-                file: `../static/${NAMESPACE}/${filename}`,
-                content: css
-            }]
-        });
-    });
-});*/
-
-
-
 sieve.hook(`${SRC}/**/*.{js,jsx}`, new BabelTransformer().next(new NoopTransformer(), new SystemTransformer(resourceMap).next(new StampTransformer(resourceMap))));
 
-
-// ES6->ES5
-//sieve.hook(`${NODE_MODULES}/**/*.{js,jsx}`, babelTransform);
-// CommonJS to SystemJS
-//sieve.hook(`${NODE_MODULES}/**/*.js`, ;
-
-// Stamp
-//sieve.hook(`${NODE_MODULES}/**/*.js`, ({
-/*    file,
-    content
-}) => {
-    const moduleId = `${NAMESPACE}:${file}`;
-    return new Promise((resolve, reject) => {
-        let {
-            filename
-        } = filestamp.sync(L(file));
-
-        resourceMap[moduleId] = resourceMap[moduleId] || {};
-
-        resourceMap[moduleId].uri = `${NAMESPACE}/${filename}`;
-        return resolve({
-            writableFiles: [{
-                file: `../static/${NAMESPACE}/${filename}`,
-                content
-            }],
-            content
-        });
-    });
-});*/
+sieve.hook(`${SRC}/**/*.less`, new LessTransformer().next(new StampTransformer(resourceMap)));
 
 // Final Build
 sieve.build(CWD).then(seeds => {
-    //console.log(seeds);
     return W(`${OUTPUT}/resource-map.json`, JSON.stringify(resourceMap, null, 4));
 }).catch(e => {
     console.error(e);
