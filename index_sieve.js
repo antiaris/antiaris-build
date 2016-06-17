@@ -13,6 +13,7 @@
 
 const path = require('path');
 const rimraf = require('rimraf');
+const babel = require('babel-core');
 const less = require('less');
 const mkdirp = require('mkdirp');
 const nodeResolve = require('antiaris-node-resolve');
@@ -119,6 +120,30 @@ sieve.hook(`{${SRC},${NODE_MODULES}}/**/*.less`, ({
     });
 });
 
+// ES6->ES5
+sieve.hook(`${SRC},/**/*.{js,jsx}`, ({
+    file,
+    content
+}) => {
+    return new Promise((resolve, reject) => {
+        babel.transformFile(L(file), {
+            extends: path.join(__dirname, '.babelrc')
+        }, (err, result) => {
+            if (err) {
+                error(`Transform ES6 error in ${file}: ${err.message}`);
+                resolve({
+                    file,
+                    content
+                });
+            } else {
+                resolve({
+                    file,
+                    content: result.code
+                });
+            }
+        });
+    })
+});
 // "node_modules" Script files
 // 这里的文件需要生成两份代码，同构之用
 // (1)[Server]原文不动复制过去
@@ -136,7 +161,7 @@ sieve.hook(`${NODE_MODULES}/**/*.js`, ({
                 let p = nodeResolve.resolve(L(file), dep);
                 if (!p) {
                     warn(`Dependency "${dep}" not found for ${file}`);
-                    return p;
+                    return;
                 }
                 return `${NAMESPACE}:` + path.relative(CWD, p);
             }
@@ -152,8 +177,8 @@ sieve.hook(`${NODE_MODULES}/**/*.js`, ({
                     deps: []
                 };
                 return resolve({
-                     file: `../static/${NAMESPACE}/${filename}`,
-                     content
+                    file: `../static/${NAMESPACE}/${filename}`,
+                    content
                 });
             } else {
                 let {
@@ -190,6 +215,7 @@ sieve.hook(`${SRC}/**/*.{js,jsx}`, ({
 // Final Build
 sieve.build(CWD).then(() => {
     return W(`${OUTPUT}/resource-map.json`, JSON.stringify(resourceMap, null, 4));
-}).catch(e => {console.log(e)
+}).catch(e => {
+    console.log(e)
     error(e.message);
 });
