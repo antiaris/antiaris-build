@@ -23,7 +23,7 @@ class BabelTransformer extends Transformer {
     }) {
         return new Promise((resolve, reject) => {
             babel.transformFile(L(file), {
-                extends: path.join(__dirname, '.babelrc')
+                extends: path.join(__dirname, '..' ,'.babelrc')
             }, (err, result) => {
                 if (err) {
                     error(`Transform ES6 error in ${file}: ${err.message}`);
@@ -32,7 +32,8 @@ class BabelTransformer extends Transformer {
                     });
                 } else {
                     resolve({
-                        content: result.code
+                        content: result.code,
+                        file
                     });
                 }
             });

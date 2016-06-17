@@ -130,7 +130,7 @@ rimraf.sync(OUTPUT); // TODO:on demand
 
 
 
-//sieve.hook(`${SRC}/**/*.{js,jsx}`, babelTransform.next(systemTransform.next(stampTransform.next(copyTransform)), copyTransform));
+sieve.hook(`${SRC}/**/*.{js,jsx}`, new BabelTransformer());
 
 
 // ES6->ES5
@@ -163,9 +163,10 @@ rimraf.sync(OUTPUT); // TODO:on demand
 });*/
 
 // Final Build
-sieve.build(CWD).then(() => {
+sieve.build(CWD).then(seeds => {
+    //console.log(seeds);
     return W(`${OUTPUT}/resource-map.json`, JSON.stringify(resourceMap, null, 4));
 }).catch(e => {
-    console.log(e)
+    console.error(e);
     error(e.message);
 });
