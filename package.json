@@ -2,12 +2,12 @@
   "name": "antiaris-build",
   "version": "1.0.0",
   "description": "Build script for antiaris project",
-  "main": "index.js",
+  "main": "lib/index.js",
   "bin": {
     "antiaris-build": "bin/antiaris-build"
   },
   "scripts": {
-    "eslint": "./node_modules/.bin/eslint transformer",
+    "eslint": "./node_modules/.bin/eslint lib",
     "mocha": "./node_modules/.bin/mocha",
     "test": "npm run eslint && npm run mocha"
   },
