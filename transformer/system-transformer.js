@@ -14,6 +14,7 @@ const Transformer = require('./transformer');
 const c2s = require('antiaris-transform-commonjs-modules-systemjs');
 const path = require('path');
 const nodeResolve = require('antiaris-node-resolve');
+const extend = require('lodash/extend');
 const {
     L,
     CWD,
@@ -24,10 +25,11 @@ const {
 } = require('antiaris-logger');
 
 class SystemTransformer extends Transformer {
-    _transform({
-        file,
-        content
-    }) {
+    _transform(seed) {
+        let {
+            file,
+            content
+        } = seed;
         return new Promise((resolve, reject) => {
             const moduleId = `${NAMESPACE}:${file}`;
 
@@ -43,16 +45,14 @@ class SystemTransformer extends Transformer {
                 }
             }, (err, result) => {
                 if (err) {
-                    error(`Transform "${file}" error: ${err.message}`);
-                    return resolve({
-                        content
-                    });
+                    error(`SystemTransform "${file}" error: ${err.message}`);
+                    return resolve(seed);
                 } else {
                     //resourceMap[moduleId] = resourceMap[moduleId] || {};
                     //resourceMap[moduleId].deps = result.deps;
-                    return resolve({
+                    return resolve(extend({}, seed, {
                         content: result.code
-                    });
+                    }));
                 }
             });
         });

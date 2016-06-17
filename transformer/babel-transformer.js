@@ -13,28 +13,31 @@
 const Transformer = require('./transformer');
 const babel = require('babel-core');
 const path = require('path');
-const {L} = require('../lib/config');
-const {error} = require('antiaris-logger');
+const extend = require('lodash/extend');
+const {
+    L
+} = require('../lib/config');
+const {
+    error
+} = require('antiaris-logger');
 
 class BabelTransformer extends Transformer {
-    _transform({
-        file,
-        content
-    }) {
+    _transform(seed) {
+        let {
+            file,
+            content
+        } = seed;
         return new Promise((resolve, reject) => {
             babel.transformFile(L(file), {
-                extends: path.join(__dirname, '..' ,'.babelrc')
+                extends: path.join(__dirname, '..', '.babelrc')
             }, (err, result) => {
                 if (err) {
-                    error(`Transform ES6 error in ${file}: ${err.message}`);
-                    resolve({
-                        content
-                    });
+                    error(`BabelTransform error in ${file}: ${err.message}`);
+                    resolve(seed);
                 } else {
-                    resolve({
-                        content: result.code,
-                        file
-                    });
+                    resolve(extend({}, seed, {
+                        content: result.code
+                    }));
                 }
             });
         });

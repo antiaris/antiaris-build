@@ -12,6 +12,7 @@
 'use strict';
 const Transformer = require('./transformer');
 const path = require('path');
+const extend = require('lodash/extend');
 const nodeResolve = require('antiaris-node-resolve');
 const {
     L,
@@ -23,17 +24,31 @@ const {
 } = require('antiaris-filestamp');
 
 class StampTransformer extends Transformer {
-    _transform({file, content}) {
+    constructor(resourceMap) {
+        super();
+        this.resourceMap = resourceMap;
+    }
+    _transform(seed) {
+        let {
+            file,
+            content
+        } = seed;
         return new Promise((resolve, reject) => {
-            const {filename} = filestamp.sync(L(file));
+            let {
+                filename
+            } = filestamp.sync(L(file));
 
             const moduleId = `${NAMESPACE}:${file}`;
 
-            resourceMap[moduleId] = {
-                uri: `${NAMESPACE}/${filename}`,
-                deps: []
-            };
-            resolve({file, content});
+            filename = filename.replace(/\.jsx$/i, '.js');
+            filename = filename.replace(/\.less$/i, '.css');
+
+            this.resourceMap[moduleId] = this.resourceMap[moduleId] || {};
+            this.resourceMap[moduleId].uri = `${NAMESPACE}/${filename}`;
+
+            resolve(extend({}, seed, {
+                file: `../static/${filename}`
+            }));
         });
     }
 }

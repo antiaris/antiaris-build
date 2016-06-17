@@ -15,10 +15,14 @@ const Transformer = require('./transformer');
 const SystemTransformer = require('./system-transformer');
 const BabelTransformer = require('./babel-transformer');
 const StampTransformer = require('./stamp-transformer');
+const NoopTransformer = require('./noop-transformer');
+const TestTransformer = require('./test-transformer');
 
 module.exports = {
     Transformer,
     SystemTransformer,
     BabelTransformer,
-    StampTransformer
+    StampTransformer,
+    NoopTransformer,
+    TestTransformer
 };

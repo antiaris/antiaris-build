@@ -42,7 +42,8 @@ const {
     Transformer,
     SystemTransformer,
     BabelTransformer,
-    StampTransformer
+    StampTransformer,
+    NoopTransformer
 } =require('./transformer/');
 
 const resourceMap = {};
@@ -130,7 +131,7 @@ rimraf.sync(OUTPUT); // TODO:on demand
 
 
 
-sieve.hook(`${SRC}/**/*.{js,jsx}`, new BabelTransformer());
+sieve.hook(`${SRC}/**/*.{js,jsx}`, new BabelTransformer().next(new NoopTransformer(), new SystemTransformer().next(new StampTransformer(resourceMap))));
 
 
 // ES6->ES5
