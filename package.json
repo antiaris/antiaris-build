@@ -7,7 +7,9 @@
     "antiaris-build": "bin/antiaris-build"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "eslint": "./node_modules/.bin/eslint transformer",
+    "mocha": "./node_modules/.bin/mocha",
+    "test": "npm run eslint && npm run mocha",
   },
   "repository": {
     "type": "git",
@@ -40,5 +42,8 @@
     "mkdirp": "^0.5.1",
     "mv": "^2.1.1",
     "rimraf": "^2.5.2"
+  },
+  "devDependencies": {
+    "eslint": "^2.12.0"
   }
 }

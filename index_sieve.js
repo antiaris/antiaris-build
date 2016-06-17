@@ -28,7 +28,9 @@ const {
     CWD,
     NAMESPACE,
     OUTPUT,
-    SRC
+    SRC,
+    NODE_MODULES,
+    BINARY_RESOURCE
 } = require('./lib/config');
 
 const {
@@ -38,53 +40,17 @@ const {
     StampTransformer,
     NoopTransformer,
     LessTransformer
-} =require('./transformer/');
+} = require('./transformer/');
 
 const resourceMap = {};
 
 rimraf.sync(OUTPUT); // TODO:on demand
 
-
-
-// TODO:Replace variables
-//sieve.hook(`**/*.*`, ({
-/*    file,
-    content
-}) => {
-    return Promise.resolve({
-        content
-    });
-});*/
-
 // Binary files
-//sieve.hook(`{${SRC},${NODE_MODULES}}/**/*.{${BINARY_RESOURCE}}`, ({
-/*    file,
-    content
-}) => {
-    return new Promise((resolve, reject) => {
+sieve.hook(`{${SRC},${NODE_MODULES}}/**/*.{${BINARY_RESOURCE}}`, new StampTransformer(resourceMap));
 
-        let {
-            filename
-        } = filestamp.sync(L(file));
-
-        let moduleId = `${NAMESPACE}:${file}`;
-
-        resourceMap[moduleId] = {
-            uri: `${NAMESPACE}/${filename}`,
-            deps: []
-        };
-
-        resolve({
-            writableFiles: [{
-                file: `../static/${NAMESPACE}/${filename}`,
-                content
-            }],
-            content
-        });
-    });
-});*/
-
-sieve.hook(`${SRC}/**/*.{js,jsx}`, new BabelTransformer().next(new NoopTransformer(), new SystemTransformer(resourceMap).next(new StampTransformer(resourceMap))));
+sieve.hook(`${SRC}/**/*.{js,jsx}`, new BabelTransformer().next(new NoopTransformer(), new SystemTransformer(resourceMap)
+    .next(new StampTransformer(resourceMap))));
 
 sieve.hook(`${SRC}/**/*.less`, new LessTransformer().next(new StampTransformer(resourceMap)));
 
