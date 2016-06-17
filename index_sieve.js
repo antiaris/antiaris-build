@@ -131,7 +131,7 @@ rimraf.sync(OUTPUT); // TODO:on demand
 
 
 
-sieve.hook(`${SRC}/**/*.{js,jsx}`, new BabelTransformer().next(new NoopTransformer(), new SystemTransformer().next(new StampTransformer(resourceMap))));
+sieve.hook(`${SRC}/**/*.{js,jsx}`, new BabelTransformer().next(new NoopTransformer(), new SystemTransformer(resourceMap).next(new StampTransformer(resourceMap))));
 
 
 // ES6->ES5

@@ -25,6 +25,10 @@ const {
 } = require('antiaris-logger');
 
 class SystemTransformer extends Transformer {
+    constructor(resourceMap) {
+        super();
+        this.resourceMap = resourceMap;
+    }
     _transform(seed) {
         let {
             file,
@@ -48,8 +52,9 @@ class SystemTransformer extends Transformer {
                     error(`SystemTransform "${file}" error: ${err.message}`);
                     return resolve(seed);
                 } else {
-                    //resourceMap[moduleId] = resourceMap[moduleId] || {};
-                    //resourceMap[moduleId].deps = result.deps;
+                    this.resourceMap[moduleId] = this.resourceMap[moduleId] || {};
+                    this.resourceMap[moduleId].deps = result.deps;
+
                     return resolve(extend({}, seed, {
                         content: result.code
                     }));
