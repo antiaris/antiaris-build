@@ -27,7 +27,7 @@ class TestTransformer extends Transformer {
             content
         } = file;
         return new Promise(resolve => {
-            resolve(file.clone(content + content));
+            resolve(file.update(content + content));
         });
     }
 }
@@ -52,17 +52,16 @@ describe('file', () => {
         });
     });
     describe('#clone', () => {
-        it('should clone own filename and content if no content defined', () => {
-            const file = new File('a.js', 'content');
+        it('should clone own filename and content', () => {
+            const res = {
+                deps: []
+            };
+            const file = new File('a.js', 'content', 'b.js', res);
             let clonedFile = file.clone();
             assert.deepEqual(clonedFile.filename, 'a.js');
             assert.deepEqual(clonedFile.content, 'content');
-        });
-        it('should clone own filename and the content', () => {
-            const file = new File('a.js', 'content');
-            let clonedFile = file.clone('summary');
-            assert.deepEqual(clonedFile.filename, 'a.js');
-            assert.deepEqual(clonedFile.content, 'summary');
+            assert.deepEqual(clonedFile.destname, 'b.js');
+            assert.deepEqual(clonedFile.resource, res);
         });
     });
     describe('#update', () => {
@@ -99,19 +98,13 @@ describe('file-collection', () => {
         it('should fill fileObjects with filenames', () => {
             const fc = new FileCollection('a.js', 'b.js');
             assert.ok('a.js' in fc.fileObjects, 'a.js in fileObjects');
-            assert.deepEqual(fc.fileObjects['a.js'], {
-                filename: 'a.js',
-                destname: 'a.js',
-                content: undefined,
-                moduleId: 'null:a.js'
-            });
+            assert.deepEqual(fc.fileObjects['a.js'].filename, 'a.js');
+            assert.deepEqual(fc.fileObjects['a.js'].destname, 'a.js');
+            assert.deepEqual(fc.fileObjects['a.js'].content, undefined);
+            assert.deepEqual(fc.fileObjects['a.js'].moduleId, 'null:a.js');
+            assert.ok('resource' in fc.fileObjects['a.js']);
+
             assert.ok('b.js' in fc.fileObjects, 'b.js in fileObjects');
-            assert.deepEqual(fc.fileObjects['b.js'], {
-                filename: 'b.js',
-                destname: 'b.js',
-                content: undefined,
-                moduleId: 'null:b.js'
-            });
         });
     });
     describe('#from', () => {
@@ -119,19 +112,9 @@ describe('file-collection', () => {
             const fc = new FileCollection();
             fc.from('a.js', 'b.js');
             assert.ok('a.js' in fc.fileObjects, 'a.js in fileObjects');
-            assert.deepEqual(fc.fileObjects['a.js'], {
-                filename: 'a.js',
-                destname: 'a.js',
-                content: undefined,
-                moduleId: 'null:a.js'
-            });
+            assert.deepEqual(fc.fileObjects['a.js'].filename, 'a.js');
+            assert.deepEqual(fc.fileObjects['a.js'].destname, 'a.js');
             assert.ok('b.js' in fc.fileObjects, 'b.js in fileObjects');
-            assert.deepEqual(fc.fileObjects['b.js'], {
-                filename: 'b.js',
-                destname: 'b.js',
-                content: undefined,
-                moduleId: 'null:b.js'
-            });
         });
     });
     describe('#has', () => {
@@ -145,12 +128,7 @@ describe('file-collection', () => {
     describe('#get', () => {
         it('should get if contains it', () => {
             const fc = new FileCollection('a.js', 'b.js');
-            assert.deepEqual(fc.get('a.js'), {
-                filename: 'a.js',
-                destname: 'a.js',
-                content: undefined,
-                moduleId: 'null:a.js'
-            });
+            assert.deepEqual(fc.get('a.js').filename, 'a.js');
             assert.deepEqual(fc.get('c.js'), undefined);
         });
     });
@@ -250,7 +228,6 @@ describe('stream', () => {
             assert.ok('pattern' in s);
             assert.ok('transformer' in s);
             assert.ok('cacheFiles' in s);
-            assert.ok('resourceMap' in s);
             assert.throws(() => {
                 s.parent = 1;
             });
@@ -274,12 +251,6 @@ describe('stream', () => {
             });
             assert.throws(() => {
                 delete s.cacheFiles;
-            });
-            assert.throws(() => {
-                s.resourceMap = 1;
-            });
-            assert.throws(() => {
-                delete s.resourceMap;
             });
         })
     });
@@ -379,6 +350,7 @@ describe('transformer', () => {
             const t = new TestTransformer();
             t.transform(new File('a.js', 'a')).then(file => {
                 assert.deepEqual(file.content, 'aa');
+            }).then(() => {
                 done();
             }).catch(e => {
                 console.error(e)
