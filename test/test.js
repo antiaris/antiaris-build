@@ -32,6 +32,20 @@ class TestTransformer extends Transformer {
     }
 }
 
+class MultiplyTransformer extends Transformer {
+    _transform(file) {
+        const {
+            content
+        } = file;
+        return new Promise(resolve => {
+            resolve([
+                file.clone(),
+                file.clone().update(content + content)
+            ]);
+        });
+    }
+}
+
 describe('file', () => {
     describe('#constructor', () => {
         it('should get right filename, destname, content and moduleId', () => {
@@ -220,6 +234,30 @@ describe('resource-map', () => {
     });
 });
 
+describe('transformer', () => {
+    describe('#transform', () => {
+        it('should make content transformed', done => {
+            const t = new TestTransformer();
+            t.transform(new File('a.js', 'a')).then(file => {
+                assert.deepEqual(file.content, 'aa');
+            }).then(() => {
+                done();
+            }).catch(e => {
+                console.error(e)
+            });
+        });
+        it('should skip if content is null', done => {
+            const t = new TestTransformer();
+            t.transform(new File('b.js', null)).then(file => {
+                assert.deepEqual(file.content, null);
+                done();
+            }).catch(e => {
+                console.error(e)
+            });
+        });
+    });
+});
+
 describe('stream', () => {
     describe('#constructor', () => {
         it('should define sealed parent,pattern,transformer,cacheFiles,resourceMap', () => {
@@ -317,7 +355,15 @@ describe('stream', () => {
             }).then(() => {
                 done();
             }, e => console.error.bind(console));
-        })
+        });
+        it('should get multiple files', done => {
+            const s = new Stream(null, '', new MultiplyTransformer());
+            s.flow([new File('a.js', 'a')]).then(files => {
+                assert.deepEqual(files[0].content, 'a');
+                assert.deepEqual(files[1].content, 'aa');
+                done();
+            });
+        });
     });
     describe('#end', () => {
         it('should set the name', () => {
@@ -342,28 +388,5 @@ describe('stream', () => {
             last.end();
         });
     });
-});
 
-describe('transformer', () => {
-    describe('#transform', () => {
-        it('should make content transformed', done => {
-            const t = new TestTransformer();
-            t.transform(new File('a.js', 'a')).then(file => {
-                assert.deepEqual(file.content, 'aa');
-            }).then(() => {
-                done();
-            }).catch(e => {
-                console.error(e)
-            });
-        });
-        it('should skip if content is null', done => {
-            const t = new TestTransformer();
-            t.transform(new File('b.js', null)).then(file => {
-                assert.deepEqual(file.content, null);
-                done();
-            }).catch(e => {
-                console.error(e)
-            });
-        });
-    });
 });
