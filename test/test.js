@@ -15,7 +15,19 @@ const CONFIG = require('../lib/config');
 const assert = require('assert');
 const flattenDeep = require('lodash/flattenDeep');
 const extend = require('lodash/extend');
-const Transformer = require('../lib/transformer/transformer');
+const {
+    Transformer,
+    SystemTransformer,
+    BabelTransformer,
+    StampTransformer,
+    NoopTransformer,
+    LessTransformer,
+    UglifyTransformer,
+    IntegrityTransformer,
+    IgnoreTransformer,
+    ReadTransformer,
+    FilterTransformer
+} = require('../lib/transformer/');
 const File = require('../lib/file');
 const FileCollection = require('../lib/file-collection');
 const ResourceMap = require('../lib/resource-map');
@@ -246,10 +258,10 @@ describe('transformer', () => {
                 console.error(e)
             });
         });
-        it('should skip if content is null', done => {
+        it('should skip if is null', done => {
             const t = new TestTransformer();
-            t.transform(new File('b.js', null)).then(file => {
-                assert.deepEqual(file.content, null);
+            t.transform(null).then(file => {
+                assert.deepEqual(file, null);
                 done();
             }).catch(e => {
                 console.error(e)
@@ -388,5 +400,20 @@ describe('stream', () => {
             last.end();
         });
     });
+});
 
+describe('filter-transformer', () => {
+    describe('#transform', () => {
+        it('should filter files', done => {
+            const ft = new FilterTransformer({
+                pattern: '*.jpg'
+            });
+            const s = new Stream(null, null, new NoopTransformer());
+            s.pipe(ft).flow([new File('a.css', 'a'), new File('b.css', 'b'), new File('b.jpg',
+                'b')]).then(file => {
+                assert.deepEqual(file[0].filename, 'b.jpg');
+                done();
+            });
+        });
+    });
 });
