@@ -30,6 +30,16 @@ const conf = panto.util.extend({}, config, {
 // Set options
 panto.setOptions();
 
+panto.loadTransformer('read');
+panto.loadTransformer('write');
+panto.loadTransformer('babel');
+panto.loadTransformer('filter');
+panto.loadTransformer('ignore');
+panto.loadTransformer('integrity');
+panto.loadTransformer('less');
+panto.loadTransformer('uglify');
+panto.loadTransformer('stamp');
+panto.loadTransformer('aspect');
 
 // Register stream
 require('./config')(panto, panto.util.extend({
