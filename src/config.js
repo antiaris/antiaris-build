@@ -12,6 +12,7 @@
 'use strict';
 
 const path = require('path');
+const ResourceMap = require('./resource-map');
 const SystemjsTransformer = require('./panto-transformer-systemjs');
 
 module.exports = (panto, conf) => {
@@ -30,6 +31,8 @@ module.exports = (panto, conf) => {
     } = panto.util;
 
     const isSkip = isDev;
+
+    const resourceMap = new ResourceMap();
 
     panto.loadTransformer('systemjs', SystemjsTransformer);
 
@@ -51,7 +54,23 @@ module.exports = (panto, conf) => {
     }))).pipe(panto.uglify({
         ignoreError: true,
         isSkip
-    })).pipe(panto.integrity()).pipe(panto.stamp()).pipe(
+    })).pipe(panto.integrity()).pipe(panto.stamp()).pipe(panto.aspect({
+        aspect: file => {
+            resourceMap.set(`${namespace}:${file.filename}`, {
+                uri: `${namespace}/${file.stamp}`
+            });
+            if (file.integrity) {
+                resourceMap.set(`${namespace}:${file.filename}`, {
+                    integrity: file.integrity
+                });
+            }
+            if (file.deps) {
+                resourceMap.set(`${namespace}:${file.filename}`, {
+                    deps: file.deps
+                });
+            }
+        }
+    })).pipe(
         panto.write({
             destname: file => path.join('static', namespace, file.stamp)
         })).end('node_modules client js');
@@ -63,7 +82,13 @@ module.exports = (panto, conf) => {
 
     // html resource
     const tpl = panto.pick(`**/*.{html,htm,shtml,xhtml,tpl}`).pipe(panto.read());
-    tpl.pipe(panto.stamp()).pipe(panto.write({
+    tpl.pipe(panto.stamp()).pipe(panto.aspect({
+        aspect: file => {
+            resourceMap.set(`${namespace}:${file.filename}`, {
+                uri: `${namespace}/${file.stamp}`
+            });
+        }
+    })).pipe(panto.write({
         destname: file => path.join('static', namespace, file.stamp)
     })).end('HTML resource');
 
@@ -79,6 +104,18 @@ module.exports = (panto, conf) => {
 
     // css
     panto.pick(`${src}/**/*.{css,less}`).pipe(panto.read()).pipe(panto.less()).pipe(panto.integrity()).pipe(panto.stamp())
+        .pipe(panto.aspect({
+            aspect: file => {
+                resourceMap.set(`${namespace}:${file.filename}`, {
+                    uri: `${namespace}/${file.stamp}`
+                });
+                if (file.integrity) {
+                    resourceMap.set(`${namespace}:${file.filename}`, {
+                        integrity: file.integrity
+                    });
+                }
+            }
+        }))
         .pipe(panto.write({
             destname: file => path.join('static', namespace, file.stamp)
         })).end('CSS');
@@ -93,7 +130,23 @@ module.exports = (panto, conf) => {
             isSilent: false
         }))).pipe(panto.uglify({
             isSkip
-        })).pipe(panto.integrity()).pipe(panto.stamp()).pipe(panto.write({
+        })).pipe(panto.integrity()).pipe(panto.stamp()).pipe(panto.aspect({
+            aspect: file => {
+                resourceMap.set(`${namespace}:${file.filename}`, {
+                    uri: `${namespace}/${file.stamp}`
+                });
+                if (file.integrity) {
+                    resourceMap.set(`${namespace}:${file.filename}`, {
+                        integrity: file.integrity
+                    });
+                }
+                if (file.deps) {
+                    resourceMap.set(`${namespace}:${file.filename}`, {
+                        deps: file.deps
+                    });
+                }
+            }
+        })).pipe(panto.write({
             destname: file => path.join('static', namespace, file.stamp)
         }))
         .end('SRC client js');
@@ -102,4 +155,9 @@ module.exports = (panto, conf) => {
     tpl.pipe(panto.write({
         destname: file => `${namespace}/${file.filename}`
     })).end('HTML template');
+
+    panto.on('complete', () => {
+        panto.file.write(`${namespace}/resource-map.json`, JSON.stringify(resourceMap._map, null, 4));
+        panto.log.info('resource-map.json created');
+    });
 };

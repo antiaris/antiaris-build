@@ -34,6 +34,7 @@
     "babel-preset-react": "^6.5.0",
     "babel-preset-stage-3": "^6.5.0",
     "js-yaml": "^3.6.1",
+    "lodash": "^4.13.1",
     "node-resolve": "^1.2.1",
     "panto": "0.0.8",
     "panto-transformer": "^0.1.3",
