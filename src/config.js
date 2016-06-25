@@ -36,13 +36,18 @@ module.exports = (panto, conf) => {
     // rest
     panto.rest().pipe(panto.ignore({
         exclude: `**/{${ignore}}`
-    })).pipe(panto.write()).end('Others');
+    })).pipe(panto.write({
+        destname: file => `${namespace}/${file.filename}`
+    })).end('Others');
 
     // node_modules
     const nodeModules = panto.pick(`${node_modules}/**/*.js`).pipe(panto.read());
-    nodeModules.pipe(panto.write()).end('node_modules server js');
+    nodeModules.pipe(panto.write({
+        destname: file => `${namespace}/${file.filename}`
+    })).end('node_modules server js');
     nodeModules.pipe(panto.systemjs(extend({}, conf, {
-        ignoreError: true
+        ignoreError: true,
+        isSilent: true
     }))).pipe(panto.uglify({
         ignoreError: true,
         isSkip
@@ -68,7 +73,9 @@ module.exports = (panto, conf) => {
         babelOptions: {
             "extends": path.join(__dirname, '..', '.babelrc-server')
         }
-    })).pipe(panto.write()).end('SRC server js');
+    })).pipe(panto.write({
+        destname: file => `${namespace}/${file.filename}`
+    })).end('SRC server js');
 
     // css
     panto.pick(`${src}/**/*.{css,less}`).pipe(panto.read()).pipe(panto.less()).pipe(panto.integrity()).pipe(panto.stamp())
@@ -81,7 +88,10 @@ module.exports = (panto, conf) => {
             babelOptions: {
                 extends: path.join(__dirname, '..', '.babelrc-client')
             }
-        })).pipe(panto.systemjs(conf)).pipe(panto.uglify({
+        })).pipe(panto.systemjs(extend({}, conf, {
+            ignoreError: true,
+            isSilent: false
+        }))).pipe(panto.uglify({
             isSkip
         })).pipe(panto.integrity()).pipe(panto.stamp()).pipe(panto.write({
             destname: file => path.join('static', namespace, file.stamp)
@@ -89,5 +99,7 @@ module.exports = (panto, conf) => {
         .end('SRC client js');
 
     // html template
-    tpl.pipe(panto.write()).end('HTML template');
+    tpl.pipe(panto.write({
+        destname: file => `${namespace}/${file.filename}`
+    })).end('HTML template');
 };

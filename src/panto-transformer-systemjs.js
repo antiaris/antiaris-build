@@ -23,6 +23,7 @@ class SystemjsTransformer extends Transformer {
         } = file;
 
         let {
+            isSilent,
             ignoreError,
             cwd,
             namespace
@@ -30,6 +31,7 @@ class SystemjsTransformer extends Transformer {
 
         return new Promise((resolve, reject) => {
             c2s.transform(content, {
+                isSilent,
                 moduleId: namespace + ':' + filename,
                 filename,
                 translateDep: dep => {
@@ -38,7 +40,9 @@ class SystemjsTransformer extends Transformer {
                         const errMsg =
                             `SystemjsTransform warnning in ${filename}: dependency "${dep}" not found`;
                         if (ignoreError) {
-                            panto.log.warn(errMsg);
+                            if (!isSilent) {
+                                panto.log.warn(errMsg);
+                            }
 
                         } else {
                             throw new Error(errMsg);
@@ -50,7 +54,10 @@ class SystemjsTransformer extends Transformer {
             }, (err, result) => {
                 if (err) {
                     if (ignoreError) {
-                        panto.log.warn(`SystemTransform warnning in ${filename}: ${err.message}`);
+                        if (!isSilent) {
+                            panto.log.warn(
+                                `SystemTransform warnning in ${filename}: ${err.message}`);
+                        }
                         resolve(file);
                     } else {
                         reject(err);
