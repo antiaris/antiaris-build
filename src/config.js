@@ -41,7 +41,7 @@ module.exports = (panto, conf) => {
     // rest
     panto.rest().pipe(panto.ignore({
         exclude: `**/{${ignore}}`
-    })).pipe(panto.write({
+    })).pipe(panto.read()).pipe(panto.write({
         destname: file => `${namespace}/${file.filename}`
     })).end('Others');
 

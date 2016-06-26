@@ -76,7 +76,7 @@ class ResourceTransformer extends Transformer {
                 //absolute url
                 return url;
             }
-
+            panto.reportDependencies(filename, resname);
             aliasName = getResourceStamp(resname);
 
             if (!aliasName) {

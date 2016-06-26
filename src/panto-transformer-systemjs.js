@@ -56,7 +56,9 @@ class SystemjsTransformer extends Transformer {
                         }
                         return;
                     }
-                    return namespace + ':' + path.relative(cwd, p);
+                    dep = path.relative(cwd, p);
+                    panto.reportDependencies(filename, dep);
+                    return namespace + ':' + dep;
                 }
             }, (err, result) => {
                 if (err) {
