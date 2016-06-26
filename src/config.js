@@ -14,6 +14,7 @@
 const path = require('path');
 const ResourceMap = require('./resource-map');
 const SystemjsTransformer = require('./panto-transformer-systemjs');
+const ResourceTransformer = require('./panto-transformer-resource');
 
 module.exports = (panto, conf) => {
 
@@ -35,6 +36,7 @@ module.exports = (panto, conf) => {
     const resourceMap = new ResourceMap();
 
     panto.loadTransformer('systemjs', SystemjsTransformer);
+    panto.loadTransformer('resource', ResourceTransformer);
 
     // rest
     panto.rest().pipe(panto.ignore({
@@ -81,7 +83,7 @@ module.exports = (panto, conf) => {
     })).end('Binary');
 
     // html resource
-    const tpl = panto.pick(`**/*.{html,htm,shtml,xhtml,tpl}`).pipe(panto.read());
+    const tpl = panto.pick(`src/**/*.{html,htm,shtml,xhtml,tpl}`).pipe(panto.read());
     tpl.pipe(panto.stamp()).pipe(panto.aspect({
         aspect: file => {
             resourceMap.set(`${namespace}:${file.filename}`, {
@@ -122,15 +124,19 @@ module.exports = (panto, conf) => {
 
     // client js 
     srcJs.pipe(panto.babel({
+            isSkip: 'src/lib/**/*.js',
             babelOptions: {
                 extends: path.join(__dirname, '..', '.babelrc-client')
             }
         })).pipe(panto.systemjs(extend({}, conf, {
             ignoreError: true,
-            isSilent: false
-        }))).pipe(panto.uglify({
-            isSkip
-        })).pipe(panto.integrity()).pipe(panto.stamp()).pipe(panto.aspect({
+            isSilent: false,
+            exculde: 'src/lib/**/*.js'
+        })))
+        /*.pipe(panto.uglify({
+                    isSkip
+                }))*/
+        .pipe(panto.integrity()).pipe(panto.stamp()).pipe(panto.aspect({
             aspect: file => {
                 resourceMap.set(`${namespace}:${file.filename}`, {
                     uri: `${namespace}/${file.stamp}`
@@ -152,7 +158,12 @@ module.exports = (panto, conf) => {
         .end('SRC client js');
 
     // html template
-    tpl.pipe(panto.write({
+    tpl.pipe(new ResourceTransformer(extend(conf, {
+        getResourceStamp: name => {
+            const moduleId = `${namespace}:${name}`;
+            return resourceMap.get(moduleId) ? resourceMap.get(moduleId).uri : null;
+        }
+    }))).pipe(panto.write({
         destname: file => `${namespace}/${file.filename}`
     })).end('HTML template');
 

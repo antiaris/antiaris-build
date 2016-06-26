@@ -14,6 +14,7 @@ const Transformer = require('panto-transformer');
 const c2s = require('antiaris-transform-commonjs-modules-systemjs');
 const path = require('path');
 const nodeResolve = require('node-resolve');
+const minimatch = require('minimatch');
 
 class SystemjsTransformer extends Transformer {
     _transform(file) {
@@ -26,10 +27,16 @@ class SystemjsTransformer extends Transformer {
             isSilent,
             ignoreError,
             cwd,
-            namespace
+            namespace,
+            exculde
         } = this.options;
 
         return new Promise((resolve, reject) => {
+
+            if (exculde && minimatch(filename, exculde)) {
+                return resolve(file);
+            }
+
             c2s.transform(content, {
                 isSilent,
                 moduleId: namespace + ':' + filename,
