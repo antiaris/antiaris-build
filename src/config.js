@@ -29,38 +29,23 @@ module.exports = (panto, conf) => {
 
     const {
         extend
-    } = panto.util;
+    } = panto._;
 
-    const isSkip = isDev;
-
-    const resourceMap = new ResourceMap();
-
-    panto.loadTransformer('systemjs', SystemjsTransformer);
-    panto.loadTransformer('resource', ResourceTransformer);
-
-    // rest
-    panto.rest().pipe(panto.ignore({
-        exclude: `**/{${ignore}}`
-    })).pipe(panto.read()).pipe(panto.write({
+    const WRITE_ORIGIN = {
         destname: file => `${namespace}/${file.filename}`
-    })).end('Others');
+    };
 
-    // node_modules
-    const nodeModules = panto.pick(`${node_modules}/**/*.js`).pipe(panto.read());
-    nodeModules.pipe(panto.write({
-        destname: file => `${namespace}/${file.filename}`
-    })).end('node_modules server js');
-    nodeModules.pipe(panto.systemjs(extend({}, conf, {
-        ignoreError: true,
-        isSilent: true
-    }))).pipe(panto.uglify({
-        ignoreError: true,
-        isSkip
-    })).pipe(panto.integrity()).pipe(panto.stamp()).pipe(panto.aspect({
+    const WRITE_STATIC = {
+        destname: file => path.join('static', namespace, file.stamp)
+    };
+
+    const SET_RES_MAP = {
         aspect: file => {
-            resourceMap.set(`${namespace}:${file.filename}`, {
-                uri: `${namespace}/${file.stamp}`
-            });
+            if (file.stamp) {
+                resourceMap.set(`${namespace}:${file.filename}`, {
+                    uri: `${namespace}/${file.stamp}`
+                });
+            }
             if (file.integrity) {
                 resourceMap.set(`${namespace}:${file.filename}`, {
                     integrity: file.integrity
@@ -72,100 +57,71 @@ module.exports = (panto, conf) => {
                 });
             }
         }
-    })).pipe(
-        panto.write({
-            destname: file => path.join('static', namespace, file.stamp)
-        })).end('node_modules client js');
+    };
+
+    const isSkip = isDev;
+
+    const resourceMap = new ResourceMap();
+
+    panto.loadTransformer('systemjs', SystemjsTransformer);
+    panto.loadTransformer('resource', ResourceTransformer);
+
+    // rest
+    panto.rest().ignore({
+        exclude: `**/{${ignore}}`
+    }).read().write(WRITE_ORIGIN);
+
+    // node_modules
+    const nodeModules = panto.pick(`${node_modules}/**/*.js`).read();
+
+    nodeModules.write(WRITE_ORIGIN);
+
+    nodeModules.systemjs(extend({}, conf, {
+        ignoreError: true,
+        isSilent: true
+    })).uglify({
+        ignoreError: true,
+        isSkip
+    }).integrity().stamp().aspect(SET_RES_MAP).write(WRITE_STATIC);
 
     // binary
-    panto.pick(`**/*.{${binary_resource}}`).pipe(panto.read()).pipe(panto.stamp()).pipe(panto.write({
-        destname: file => path.join('static', namespace, file.stamp)
-    })).end('Binary');
+    panto.pick(`**/*.{${binary_resource}}`).read().stamp().write(WRITE_STATIC);
 
     // html resource
-    const tpl = panto.pick(`src/**/*.{html,htm,shtml,xhtml,tpl}`).pipe(panto.read());
-    tpl.pipe(panto.stamp()).pipe(panto.aspect({
-        aspect: file => {
-            resourceMap.set(`${namespace}:${file.filename}`, {
-                uri: `${namespace}/${file.stamp}`
-            });
-        }
-    })).pipe(panto.write({
-        destname: file => path.join('static', namespace, file.stamp)
-    })).end('HTML resource');
+    const tpl = panto.pick(`src/**/*.{html,htm,shtml,xhtml,tpl}`).read();
+    tpl.stamp().aspect(SET_RES_MAP).write(WRITE_STATIC);
 
-    const srcJs = panto.pick(`${src}/**/*.{js,jsx}`).pipe(panto.read());
+    const srcJs = panto.pick(`${src}/**/*.{js,jsx}`).read();
     // server js
-    srcJs.pipe(panto.babel({
+    srcJs.babel({
         babelOptions: {
             "extends": path.join(__dirname, '..', '.babelrc-server')
         }
-    })).pipe(panto.write({
-        destname: file => `${namespace}/${file.filename}`
-    })).end('SRC server js');
+    }).write(WRITE_ORIGIN);
 
     // css
-    panto.pick(`${src}/**/*.{css,less}`).pipe(panto.read()).pipe(panto.less()).pipe(panto.integrity()).pipe(panto.stamp())
-        .pipe(panto.aspect({
-            aspect: file => {
-                resourceMap.set(`${namespace}:${file.filename}`, {
-                    uri: `${namespace}/${file.stamp}`
-                });
-                if (file.integrity) {
-                    resourceMap.set(`${namespace}:${file.filename}`, {
-                        integrity: file.integrity
-                    });
-                }
-            }
-        }))
-        .pipe(panto.write({
-            destname: file => path.join('static', namespace, file.stamp)
-        })).end('CSS');
+    panto.pick(`${src}/**/*.{css,less}`).read().less().integrity().stamp()
+        .aspect(SET_RES_MAP).write(WRITE_STATIC);
 
     // client js 
-    srcJs.pipe(panto.babel({
-            isSkip: 'src/lib/**/*.js',
-            babelOptions: {
-                extends: path.join(__dirname, '..', '.babelrc-client')
-            }
-        })).pipe(panto.systemjs(extend({}, conf, {
-            ignoreError: true,
-            isSilent: false,
-            exculde: 'src/lib/**/*.js'
-        })))
-        /*.pipe(panto.uglify({
-                    isSkip
-                }))*/
-        .pipe(panto.integrity()).pipe(panto.stamp()).pipe(panto.aspect({
-            aspect: file => {
-                resourceMap.set(`${namespace}:${file.filename}`, {
-                    uri: `${namespace}/${file.stamp}`
-                });
-                if (file.integrity) {
-                    resourceMap.set(`${namespace}:${file.filename}`, {
-                        integrity: file.integrity
-                    });
-                }
-                if (file.deps) {
-                    resourceMap.set(`${namespace}:${file.filename}`, {
-                        deps: file.deps
-                    });
-                }
-            }
-        })).pipe(panto.write({
-            destname: file => path.join('static', namespace, file.stamp)
-        }))
-        .end('SRC client js');
+    srcJs.babel({
+        isSkip: 'src/lib/**/*.js',
+        babelOptions: {
+            extends: path.join(__dirname, '..', '.babelrc-client')
+        }
+    }).systemjs(extend({}, conf, {
+        ignoreError: true,
+        isSilent: false,
+        exculde: 'src/lib/**/*.js'
+    })).uglify().integrity().stamp().aspect(SET_RES_MAP).write(WRITE_STATIC);
 
     // html template
-    tpl.pipe(new ResourceTransformer(extend(conf, {
+    tpl.resource(extend(conf, {
         getResourceStamp: name => {
             const moduleId = `${namespace}:${name}`;
             return resourceMap.get(moduleId) ? resourceMap.get(moduleId).uri : null;
         }
-    }))).pipe(panto.write({
-        destname: file => `${namespace}/${file.filename}`
-    })).end('HTML template');
+    })).write(WRITE_ORIGIN);
 
     panto.on('complete', () => {
         panto.file.write(`${namespace}/resource-map.json`, JSON.stringify(resourceMap._map, null, 4));
