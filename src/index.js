@@ -10,6 +10,7 @@
  * @since 0.1.0
  */
 'use strict';
+process.env.PANTO_LOG_LEVEL = 'info';
 
 const rimraf = require('rimraf');
 const yaml = require('js-yaml');

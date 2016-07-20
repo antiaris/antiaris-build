@@ -67,12 +67,12 @@ module.exports = (panto, conf) => {
     panto.loadTransformer('resource', ResourceTransformer);
 
     // rest
-    panto.rest().ignore({
+    panto.rest().tag('rest').ignore({
         exclude: `**/{${ignore}}`
     }).read().write(WRITE_ORIGIN);
 
     // node_modules
-    const nodeModules = panto.pick(`${node_modules}/**/*.js`).read();
+    const nodeModules = panto.pick(`${node_modules}/**/*.js`).tag('node_modules').read();
 
     nodeModules.write(WRITE_ORIGIN);
 
@@ -81,17 +81,18 @@ module.exports = (panto, conf) => {
         isSilent: true
     })).uglify({
         ignoreError: true,
+        isSlient: true,
         isSkip
     }).integrity().stamp().aspect(SET_RES_MAP).write(WRITE_STATIC);
 
     // binary
-    panto.pick(`**/*.{${binary_resource}}`).read().stamp().write(WRITE_STATIC);
+    panto.pick(`**/*.{${binary_resource}}`).tag('binary').read().stamp().write(WRITE_STATIC);
 
     // html resource
-    const tpl = panto.pick(`src/**/*.{html,htm,shtml,xhtml,tpl}`).read();
+    const tpl = panto.pick(`src/**/*.{html,htm,shtml,xhtml,tpl}`).tag('html as static').read();
     tpl.stamp().aspect(SET_RES_MAP).write(WRITE_STATIC);
 
-    const srcJs = panto.pick(`${src}/**/*.{js,jsx}`).read();
+    const srcJs = panto.pick(`${src}/**/*.{js,jsx}`).tag('src js').read();
     // server js
     srcJs.babel({
         babelOptions: {
@@ -100,7 +101,7 @@ module.exports = (panto, conf) => {
     }).write(WRITE_ORIGIN);
 
     // css
-    panto.pick(`${src}/**/*.{css,less}`).read().less().integrity().stamp()
+    panto.pick(`${src}/**/*.{css,less}`).tag('css').read().less().integrity().stamp()
         .aspect(SET_RES_MAP).write(WRITE_STATIC);
 
     // client js 
@@ -113,7 +114,7 @@ module.exports = (panto, conf) => {
         ignoreError: true,
         isSilent: false,
         exculde: 'src/lib/**/*.js'
-    })).uglify().integrity().stamp().aspect(SET_RES_MAP).write(WRITE_STATIC);
+    })).uglify({isSlient:true}).integrity().stamp().aspect(SET_RES_MAP).write(WRITE_STATIC);
 
     // html template
     tpl.resource(extend(conf, {
