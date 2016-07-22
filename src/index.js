@@ -12,7 +12,6 @@
 'use strict';
 process.env.PANTO_LOG_LEVEL = 'info';
 
-const rimraf = require('rimraf');
 const yaml = require('js-yaml');
 const fs = require('fs');
 const path = require('path');
@@ -22,14 +21,12 @@ const CWD = process.cwd();
 
 const config = yaml.safeLoad(fs.readFileSync(path.join(CWD, 'antiaris.yml'), 'utf-8'));
 
-// Remove output directory FIRST
-rimraf.sync(config.output);
-
 const conf = panto.util.extend({}, config, {
-    cwd: CWD
+    cwd: CWD,
+    src: '.'
 });
 // Set options
-panto.setOptions();
+panto.setOptions(conf);
 
 panto.loadTransformer('read', require('panto-transformer-read'));
 panto.loadTransformer('write', require('panto-transformer-write'));
@@ -41,14 +38,13 @@ panto.loadTransformer('less', require('panto-transformer-less'));
 panto.loadTransformer('uglify', require('panto-transformer-uglify'));
 panto.loadTransformer('stamp', require('panto-transformer-stamp'));
 panto.loadTransformer('aspect', require('panto-transformer-aspect'));
+panto.loadTransformer('resource', require('panto-transformer-resource'));
 
 // Register stream
 require('./config')(panto, panto.util.extend({
     node_modules: 'node_modules',
     isDev: process.env.NODE_ENV !== 'production'
 }, conf));
-
-panto.on('error' , err => panto.log.error(err.message));
 
 // Final build * watch
 panto.build().then(() => {

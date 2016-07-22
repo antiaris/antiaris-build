@@ -42,7 +42,7 @@ class SystemjsTransformer extends Transformer {
                 moduleId: namespace + ':' + filename,
                 filename,
                 translateDep: dep => {
-                    let p = nodeResolve.resolve(panto.file.locate(filename), dep);
+                    let p = nodeResolve.resolve(filename, dep, panto.getOption('cwd'));
                     if (!p) {
                         const errMsg =
                             `SystemjsTransform warnning in ${filename}: dependency "${dep}" not found`;

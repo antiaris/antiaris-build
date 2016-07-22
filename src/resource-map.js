@@ -11,41 +11,47 @@
  */
 'use strict';
 
-const {
-    isUndefined,
-    extend
-} = require('lodash');
+const isUndefined = require('lodash/isUndefined');
+const defineFrozenProperty = require('define-frozen-property');
 
 class ResourceMap {
     constructor() {
-        // Lock this.map
-        Object.defineProperties(this, {
-            _map: {
-                value: {},
-                writable: false,
-                enumerable: true,
-                configurable: false
-            }
-        });
+        defineFrozenProperty(this, '_map', new Map());
     }
     set(moduleId, options) {
         if (!options) {
             return;
         }
-        if (!this._map[moduleId]) {
-            this._map[moduleId] = {};
+
+        if (!this._map.has(moduleId)) {
+            this._map.set(moduleId, new Map());
         }
-        extend(this._map[moduleId], options);
+        for (let dfn in options) {
+            this._map.get(moduleId).set(dfn, options[dfn]);
+        }
     }
     get(moduleId) {
-        return this._map[moduleId];
+        return this._map.get(moduleId);
     }
     remove(moduleId, key) {
         if (isUndefined(key)) {
-            delete this._map[moduleId];
-        } else if (this._map[moduleId]) {
-            delete this._map[moduleId][key];
+            this._map.delete(moduleId);
+        } else if (this._map.has(moduleId)) {
+            this._map.get(moduleId).delete(key);
         }
+    }
+    clear() {
+        this._map.clear();
+    }
+    toJSONString() {
+        const ret = {};
+        for (let [mid, opts] of this._map) {
+            ret[mid] = ret[mid] || {};
+            for (let [oname, opty] of opts) {
+                ret[mid][oname] = opty;
+            }
+        }
+        return JSON.stringify(ret, null, 4);
     }
 }
 
