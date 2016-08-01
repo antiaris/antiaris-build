@@ -64,23 +64,23 @@ module.exports = (panto, conf) => {
     panto.loadTransformer('systemjs', SystemjsTransformer);
 
     // rest
-    // panto.rest().tag('rest').ignore({
-    //     exclude: `**/{${ignore}}`
-    // }).read().write(WRITE_ORIGIN);
+    panto.rest().tag('rest').ignore({
+        exclude: `**/{${ignore}}`
+    }).read().write(WRITE_ORIGIN);
 
-    // // node_modules
-    // const nodeModules = panto.pick(`${node_modules}/**/*.js`).tag('node_modules').read();
+    // node_modules
+    const nodeModules = panto.pick(`${node_modules}/**/*.{js,json}`).tag('node_modules').read();
 
-    // nodeModules.write(WRITE_ORIGIN);
+    nodeModules.write(WRITE_ORIGIN);
 
-    // nodeModules.systemjs(extend({}, conf, {
-    //     ignoreError: true,
-    //     isSilent: true
-    // })).uglify({
-    //     ignoreError: true,
-    //     isSlient: true,
-    //     isSkip
-    // }).integrity().stamp().aspect(SET_RES_MAP).write(WRITE_STATIC);
+    nodeModules.systemjs(extend({}, conf, {
+        ignoreError: true,
+        isSilent: true
+    })).uglify({
+        ignoreError: true,
+        isSlient: true,
+        isSkip
+    }).integrity().stamp().aspect(SET_RES_MAP).write(WRITE_STATIC);
 
     // binary
     panto.pick(`**/*.{${binary_resource}}`).tag('binary').read().stamp().write(WRITE_STATIC);

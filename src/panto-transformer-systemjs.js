@@ -14,7 +14,6 @@ const Transformer = require('panto-transformer');
 const c2s = require('antiaris-transform-commonjs-modules-systemjs');
 const path = require('path');
 const nodeResolve = require('node-resolve');
-const minimatch = require('minimatch');
 
 class SystemjsTransformer extends Transformer {
     _transform(file) {
@@ -31,9 +30,13 @@ class SystemjsTransformer extends Transformer {
             exculde
         } = this.options;
 
+        if (/\.json/i.test(filename)) {
+            content = 'module.exports=' + content;
+        }
+
         return new Promise((resolve, reject) => {
 
-            if (exculde && minimatch(filename, exculde)) {
+            if (exculde && panto.file.match(filename, exculde)) {
                 return resolve(file);
             }
 
@@ -42,7 +45,7 @@ class SystemjsTransformer extends Transformer {
                 moduleId: namespace + ':' + filename,
                 filename,
                 translateDep: dep => {
-                    let p = nodeResolve.resolve(filename, dep, panto.getOption('cwd'));
+                    let p = nodeResolve.resolve(filename, dep, panto.getOption('cwd'), true);
                     if (!p) {
                         const errMsg =
                             `SystemjsTransform warnning in ${filename}: dependency "${dep}" not found`;
