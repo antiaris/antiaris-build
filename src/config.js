@@ -75,53 +75,82 @@ module.exports = (panto, conf) => {
 
     nodeModules.systemjs(extend({}, conf, {
         ignoreError: true,
-        isSilent: true
+        isSilent: true,
+        isCacheable: true
     })).uglify({
         ignoreError: true,
         isSlient: true,
-        isSkip
-    }).integrity().stamp().aspect(SET_RES_MAP).write(WRITE_STATIC);
+        isSkip,
+        isCacheable: true
+    }).integrity({
+        isCacheable: true
+    }).stamp({
+        isCacheable: true
+    }).aspect(SET_RES_MAP).write(WRITE_STATIC);
 
     // binary
-    panto.pick(`**/*.{${binary_resource}}`).tag('binary').read().stamp().write(WRITE_STATIC);
+    panto.pick(`src/**/*.{${binary_resource}}`).tag('binary').read().stamp({
+        isCacheable: true
+    }).write(WRITE_STATIC);
 
-    // html resource
-    const tpl = panto.pick(`src/**/*.{html,htm,shtml,xhtml,tpl}`).tag('html as static').read();
-    tpl.stamp().aspect(SET_RES_MAP).write(WRITE_STATIC);
+   
 
     const srcJs = panto.pick(`src/**/*.{js,jsx}`).tag('src js').read();
     // server js
     srcJs.babel({
+        isSkip: 'src/lib/**/*.js',
         babelOptions: {
             "extends": path.join(__dirname, '..', '.babelrc-server')
-        }
+        },
+        isCacheable: true
     }).write(WRITE_ORIGIN);
 
     // css
-    panto.pick(`src/**/*.{css,less}`).tag('css').read().less().integrity().stamp()
-        .aspect(SET_RES_MAP).write(WRITE_STATIC);
+    panto.pick(`src/**/*.{css,less}`).tag('css').read().less({
+        isCacheable: true
+    }).integrity({
+        isCacheable: true
+    }).stamp({
+        isCacheable: true
+    }).aspect(SET_RES_MAP).write(WRITE_STATIC);
 
     // client js 
     srcJs.babel({
         isSkip: 'src/lib/**/*.js',
         babelOptions: {
             extends: path.join(__dirname, '..', '.babelrc-client')
-        }
+        },
+        isCacheable: true
     }).systemjs(extend({}, conf, {
         ignoreError: true,
         isSilent: false,
-        exculde: 'src/lib/**/*.js'
+        isSkip: 'src/lib/**/*.js',
+        isCacheable: true
     })).uglify({
-        isSlient: true
-    }).integrity().stamp().aspect(SET_RES_MAP).write(WRITE_STATIC);
+        isSlient: true,
+        compressorOptions: {
+
+        },
+        isCacheable: true
+    }).integrity({
+        isCacheable: true
+    }).stamp({
+        isCacheable: true
+    }).aspect(SET_RES_MAP).write(WRITE_STATIC);
+
+    // html resource
+    const tpl = panto.pick(`src/**/*.{html,htm,shtml,xhtml,tpl}`).tag('html').read();
+    tpl.stamp({
+        isCacheable: true
+    }).aspect(SET_RES_MAP).write(WRITE_STATIC);
 
     // html template
-    tpl.resource(extend(conf, {
+    tpl/*.resource(extend({}, conf, {
         getResourceAlias: name => {
             const moduleId = `${namespace}:${name}`;
-            return resourceMap.get(moduleId) ? resourceMap.get(moduleId).uri : null;
+            return resourceMap.has(moduleId) ? (conf.url.static_prefix + '?' + resourceMap.get(moduleId).get('uri')) : null;
         }
-    })).write(WRITE_ORIGIN);
+    }))*/.write(WRITE_ORIGIN);
 
     panto.on('start', () => {
         resourceMap.clear();

@@ -33,6 +33,9 @@ class ResourceMap {
     get(moduleId) {
         return this._map.get(moduleId);
     }
+    has(moduleId) {
+        return this._map.has(moduleId);
+    }
     remove(moduleId, key) {
         if (isUndefined(key)) {
             this._map.delete(moduleId);
