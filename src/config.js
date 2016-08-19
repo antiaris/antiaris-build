@@ -14,8 +14,12 @@
 const path = require('path');
 const ResourceMap = require('./resource-map');
 const SystemjsTransformer = require('./panto-transformer-systemjs');
+const AspectTransformer = require('panto-transformer-aspect');
+const ResourceTransformer = require('panto-transformer-resource');
 
 module.exports = (panto, conf) => {
+
+    const Stream = panto.Stream;
 
     const {
         node_modules,
@@ -44,11 +48,6 @@ module.exports = (panto, conf) => {
                     uri: `${namespace}/${file.stamp}`
                 });
             }
-            if (file.integrity) {
-                resourceMap.set(`${namespace}:${file.filename}`, {
-                    integrity: file.integrity
-                });
-            }
             if (file.deps) {
                 resourceMap.set(`${namespace}:${file.filename}`, {
                     deps: file.deps
@@ -56,6 +55,13 @@ module.exports = (panto, conf) => {
             }
         }
     };
+
+    const GET_RES = extend({}, conf, {
+        getResourceAlias: name => {
+            const moduleId = `${namespace}:${name}`;
+            return resourceMap.has(moduleId) ? ('/' + resourceMap.get(moduleId).get('uri')) : null;
+        }
+    });
 
     const isSkip = isDev;
 
@@ -69,7 +75,7 @@ module.exports = (panto, conf) => {
     }).read().write(WRITE_ORIGIN);
 
     // node_modules
-    const nodeModules = panto.pick(`${node_modules}/**/*.{js,json}`).tag('node_modules').read();
+    const nodeModules = panto.$(`${node_modules}/**/*.{js,json}`, true).tag('node_modules').read();
 
     nodeModules.write(WRITE_ORIGIN);
 
@@ -82,18 +88,23 @@ module.exports = (panto, conf) => {
         isSlient: true,
         isSkip,
         isCacheable: true
-    }).integrity({
-        isCacheable: true
     }).stamp({
         isCacheable: true
     }).aspect(SET_RES_MAP).write(WRITE_STATIC);
 
     // binary
+    const binaryAspectStream = new Stream(new AspectTransformer(SET_RES_MAP));
+
     panto.pick(`src/**/*.{${binary_resource}}`).tag('binary').read().stamp({
         isCacheable: true
-    }).write(WRITE_STATIC);
+    }).connect(binaryAspectStream).write(WRITE_STATIC);
 
-   
+   // html resource
+    const tpl = panto.pick(`src/**/*.{html,htm,shtml,xhtml,tpl}`).tag('html').read();
+    
+    tpl.stamp({
+        isCacheable: true
+    }).aspect(SET_RES_MAP).write(WRITE_STATIC);
 
     const srcJs = panto.pick(`src/**/*.{js,jsx}`).tag('src js').read();
     // server js
@@ -106,15 +117,20 @@ module.exports = (panto, conf) => {
     }).write(WRITE_ORIGIN);
 
     // css
+    const cssAspectStream = new Stream(new AspectTransformer(SET_RES_MAP));
+    const cssResourceStream = new Stream(new ResourceTransformer(GET_RES));
+    
+    binaryAspectStream.connect(cssResourceStream);
+    
     panto.pick(`src/**/*.{css,less}`).tag('css').read().less({
         isCacheable: true
-    }).integrity({
+    }).connect(cssResourceStream).stamp({
         isCacheable: true
-    }).stamp({
-        isCacheable: true
-    }).aspect(SET_RES_MAP).write(WRITE_STATIC);
+    }).connect(cssAspectStream).write(WRITE_STATIC);
 
     // client js 
+    const srcClientAspectStream = new Stream(new AspectTransformer(SET_RES_MAP));
+    
     srcJs.babel({
         isSkip: 'src/lib/**/*.js',
         babelOptions: {
@@ -128,33 +144,20 @@ module.exports = (panto, conf) => {
         isCacheable: true
     })).uglify({
         isSlient: true,
-        compressorOptions: {
-
-        },
-        isCacheable: true
-    }).integrity({
         isCacheable: true
     }).stamp({
         isCacheable: true
-    }).aspect(SET_RES_MAP).write(WRITE_STATIC);
+    }).connect(srcClientAspectStream).write(WRITE_STATIC);
 
-    // html resource
-    const tpl = panto.pick(`src/**/*.{html,htm,shtml,xhtml,tpl}`).tag('html').read();
-    tpl.stamp({
-        isCacheable: true
-    }).aspect(SET_RES_MAP).write(WRITE_STATIC);
+    const htmlTemplateResourceStream = new Stream(new ResourceTransformer(GET_RES));
 
-    // html template
-    tpl/*.resource(extend({}, conf, {
-        getResourceAlias: name => {
-            const moduleId = `${namespace}:${name}`;
-            return resourceMap.has(moduleId) ? (conf.url.static_prefix + '?' + resourceMap.get(moduleId).get('uri')) : null;
-        }
-    }))*/.write(WRITE_ORIGIN);
+    binaryAspectStream.connect(htmlTemplateResourceStream, false);
+    cssAspectStream.connect(htmlTemplateResourceStream, false);
+    srcClientAspectStream.connect(htmlTemplateResourceStream, false);
+    
+    tpl.connect(htmlTemplateResourceStream).write(WRITE_ORIGIN);
 
-    panto.on('start', () => {
-        resourceMap.clear();
-    }).on('complete', () => {
+    panto.on('complete', () => {
         panto.file.write(`${namespace}/resource-map.json`, resourceMap.toJSONString());
         panto.log.info('resource-map.json created');
     }).on('error', err => panto.log.error(err));
