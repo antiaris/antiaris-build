@@ -1,7 +1,7 @@
 # antiaris-build
 [![NPM version][npm-image]][npm-url] [![Downloads][downloads-image]][npm-url] [![Build Status][travis-image]][travis-url] [![Dependency status][david-dm-image]][david-dm-url] [![Dev Dependency status][david-dm-dev-image]][david-dm-dev-url]
 
-Build script for [antiaris](https://github.com/antiaris) project.
+Build script for [antiaris](https://github.com/antiaris) project. **Need Node.js >= v7**
 
 ## install
 
@@ -30,5 +30,5 @@ binary_resource: webp,png,jpg,jpeg,gif,bmp,swf,woff,woff2,ttf,eot,otf,cur
 [travis-image]: http://img.shields.io/travis/antiaris/antiaris-build.svg
 [david-dm-url]:https://david-dm.org/antiaris/antiaris-build
 [david-dm-image]:https://david-dm.org/antiaris/antiaris-build.svg
-[david-dm-dev-url]:https://david-dm.org/antiaris/antiaris-build#info=devDependencies
+[david-dm-dev-url]:https://david-dm.org/antiaris/antiaris-build#type=dev
 [david-dm-dev-image]:https://david-dm.org/antiaris/antiaris-build/dev-status.svg

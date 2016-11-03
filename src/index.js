@@ -31,7 +31,7 @@ panto.setOptions(conf);
 require('time-panto')(panto);
 
 require('load-panto-transformers')(panto, {
-    config: JSON.parse(fs.readFileSync(__dirname + '/../package.json', 'utf8'))
+    config: require('../package.json')
 });
 
 // Register stream

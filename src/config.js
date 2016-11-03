@@ -157,7 +157,8 @@ module.exports = (panto, conf) => {
     
     tpl.connect(htmlTemplateResourceStream).write(WRITE_ORIGIN);
 
-    panto.on('complete', () => {
+    panto.on('complete', files => {
+        panto.log.info(files);
         panto.file.write(`${namespace}/resource-map.json`, resourceMap.toJSONString());
         panto.log.info('resource-map.json created');
     }).on('error', err => panto.log.error(err));
